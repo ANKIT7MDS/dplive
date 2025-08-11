@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="hi"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Theme A – Simple Final</title>
+<style>
+body{margin:0;font-family:"Noto Sans Devanagari","Hind",system-ui,Arial,sans-serif;background:#f7f8fb;color:#1b2941}
+.wrap{max-width:1200px;margin:0 auto;padding:16px}
+.top{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.btn{border:1px solid #1f3b73;background:#eef3ff;color:#1f3b73;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+.page{background:#fff;border:1px solid #e8e9ee;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.05);padding:18px;margin-top:10px}
+.header{display:grid;grid-template-columns:80px 1fr 120px;gap:14px;align-items:center;border-bottom:4px solid #e77019;padding-bottom:10px}
+.logo{width:80px;height:80px;border-radius:50%;background:#ffe7d6;border:2px solid #e77019;display:flex;align-items:center;justify-content:center;color:#9a3e00;font-weight:800}
+.gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.thumb img{width:100%;height:200px;object-fit:cover;border-radius:10px}
+@media(max-width:640px){.gallery{grid-template-columns:1fr}.thumb img{height:240px}}
+</style></head>
+<body><div class="wrap">
+<div class="top"><div><button id="prev" class="btn">◀ पिछला</button><button id="next" class="btn">अगला ▶</button></div><span id="status"></span></div>
+<div id="page" class="page"></div>
+</div>
+<script>
+const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vR4o78Xk4MGw48WSeBe5pmHyqWaJl3lPz18LcA0QCPZmpiNNmkHbJBJS_iX1s63JvhqbOFCrQEMRNeE/pub?output=csv";
+const CSV_URL_PROXY="https://corsproxy.io/?"+encodeURIComponent(CSV_URL);
+const H={"date":"कार्यक्रम दिनांक","place":"कार्यक्रम स्थान","title":"कार्यक्रम का नाम","attendance":"कार्यक्रम में कुल उपस्तिथि","guests":"कार्यक्रम में प्रमुख अतिथि , जनप्रतिनिधि","photos":"कार्यक्रम के फोटो","info":"कार्यक्रम से सम्बंधित अन्य जानकारी संषिप्त में","mandal":"मंडल का नाम","type":"कार्यक्रम का प्रकार"};
+let rows=[],i=0;
+function parseCSV(t){const o=[];let e=0,l="",n=[],r=!1;for(;e<t.length;){const a=t[e];r?('"'===a?('"'===t[e+1]?(l+='"',e++):r=!1):l+=a):('"'===a?r=!0:","===a?(n.push(l),l=""):"\n"===a?(n.push(l),o.push(n),n=[],l=""):"\r"!==a&&(l+=a)),e++}return(l.length||n.length)&&(n.push(l),o.push(n)),(()=>{const t=o.shift();return o.map((o=>Object.fromEntries(t.map(((t,e)=>[t,(o[e]||"").trim()])))))}))()}
+function esc(s){return(s||"").replace(/[&<>]/g,(c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])))}function extractID(u){if(!u)return"";u=u.trim();let m=u.match(/[?&]id=([\w-]+)/);if(m)return m[1];if(m=u.match(/\/file\/d\/([\w-]+)/))return m[1];return/^[\w-]{15,}$/.test(u)?u:""}function candidates(u){const id=extractID(u);return id?["https://drive.google.com/uc?export=view&id="+id,"https://drive.google.com/thumbnail?id="+id+"&sz=w1200","https://lh3.googleusercontent.com/d/"+id+"=w1200"]:[]}
+function photos(f){return(f||"").split(/[\n,]/).map(s=>s.trim()).filter(Boolean).slice(0,4)}
+function render(r){document.getElementById("page").innerHTML=`<div class="header"><div class="logo">BJ</div><div><h2>${esc(r[H.title]||"")}</h2><div>${esc(r[H.place]||"")} • ${esc(r[H.date]||"")}</div></div><div>${i+1} / ${rows.length}</div></div><div style="margin:10px 0">${esc(r[H.info]||"")}</div><div class="gallery" id="gal"></div>`;const g=document.getElementById("gal");photos(r[H.photos]).forEach(u=>{const tries=candidates(u);const img=document.createElement("img");let k=0;img.src=tries[k]||u;img.onerror=()=>{if(++k<tries.length)img.src=tries[k];};const d=document.createElement("div");d.className="thumb";d.appendChild(img);g.appendChild(d);});}
+async function load(u){const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw 0;return parseCSV(await r.text())}
+async function init(){try{rows=await load(CSV_URL)}catch(e){rows=await load(CSV_URL_PROXY)}if(!rows.length)return;render(rows[i]);document.getElementById("status").textContent="रिकॉर्ड: "+rows.length}
+init();document.getElementById("prev").onclick=()=>{if(i>0){i--;render(rows[i])}};document.getElementById("next").onclick=()=>{if(i<rows.length-1){i++;render(rows[i])}};
+</script></body></html>
