@@ -56,10 +56,10 @@
             backdrop-filter: blur(10px);
         }
         .slideshow-card {
-             animation: fadeIn 1s;
+             animation: fadeIn 0.8s;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
+            from { opacity: 0; transform: scale(0.98); }
             to { opacity: 1; transform: scale(1); }
         }
         /* Custom scrollbar */
@@ -173,6 +173,7 @@
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4o78Xk4MGw48WSeBe5pmHyqWaJl3lPz18LcA0QCPZmpiNNmkHbJBJS_iX1s63JvhqbOFCrQEMRNeE/pub?output=csv';
         let programData = [];
         let filteredData = [];
+        let slideshowData = [];
         let chartInstances = {};
         let slideshowInterval;
         let slideshowIndex = 0;
@@ -245,6 +246,7 @@
                     renderProgramCards();
                     setupFilters();
                     processAndRenderDashboard();
+                    generateSlideshowData(); // Generate initial slideshow data
                 } else {
                     loadingMessage.innerText = 'कोई कार्यक्रम डेटा नहीं मिला।';
                 }
@@ -258,7 +260,7 @@
             const lines = csvText.split(/\r\n|\n/);
             if (lines.length < 2) return [];
 
-            // Sanitize headers, especially the first one which might have a BOM character
+            // Sanitize headers
             const rawHeaders = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             const headers = rawHeaders.map((h, index) => {
                 let cleanHeader = h.trim().replace(/^"|"$/g, '');
@@ -269,13 +271,9 @@
             });
             
             const data = [];
-
             for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
-
-                // This regex handles commas inside quoted fields
                 const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                
                 if (values.length === headers.length) {
                     const obj = {};
                     headers.forEach((header, index) => {
@@ -283,7 +281,7 @@
                     });
                     data.push(obj);
                 } else {
-                    console.warn(`Skipping row due to column mismatch. Expected ${headers.length} columns, but got ${values.length}. Row content:`, lines[i]);
+                    console.warn(`Skipping row due to column mismatch:`, lines[i]);
                 }
             }
             return data;
@@ -360,6 +358,7 @@
                 return mandalMatch && typeMatch;
             });
             renderProgramCards();
+            generateSlideshowData(); // Regenerate slideshow data based on filters
         }
 
         // --- Modal ---
@@ -370,7 +369,6 @@
             
             if (photoLinks.length === 0) return;
             
-            let currentActiveThumb = 0;
             thumbnailContainer.innerHTML = '';
             photoLinks.forEach((link, index) => {
                 const fileId = getDriveFileId(link);
@@ -383,9 +381,7 @@
             });
             
             function setActiveThumbnail(index) {
-                currentActiveThumb = index;
                 const fileId = getDriveFileId(photoLinks[index]);
-                // Using a more reliable URL for full-size images
                 modalImage.src = `https://lh3.googleusercontent.com/d/${fileId}`;
                 modalImage.onerror = () => { modalImage.src = 'https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+उपलब्ध+नहीं'; };
                 thumbnailContainer.querySelectorAll('img').forEach((img, i) => {
@@ -409,15 +405,10 @@
         }
 
         // --- PDF Download ---
-        
-        // Helper function to fetch an image and convert it to a Data URI
         async function imageUrlToDataUrl(url) {
             try {
-                // Use a proxy or a server-side function if available for more reliability
                 const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch image: ${response.statusText}`);
-                }
+                if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
                 const blob = await response.blob();
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
@@ -427,7 +418,7 @@
                 });
             } catch (error) {
                 console.error(`Could not convert image ${url} to data URL:`, error);
-                return null; // Return null if fetching or conversion fails
+                return null;
             }
         }
 
@@ -596,7 +587,40 @@
         }
         
         // --- Slideshow ---
+
+        function generateSlideshowData() {
+            slideshowData = [];
+            filteredData.forEach(program => {
+                const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(link => link);
+                if (photoLinks.length > 0) {
+                    photoLinks.forEach((link, index) => {
+                        const fileId = getDriveFileId(link);
+                        if (fileId) {
+                            slideshowData.push({
+                                ...program,
+                                currentPhotoUrl: `https://lh3.googleusercontent.com/d/${fileId}`,
+                                photoIndex: index + 1,
+                                totalPhotos: photoLinks.length
+                            });
+                        }
+                    });
+                } else {
+                    // Add program even if it has no photos, for completeness
+                    slideshowData.push({
+                        ...program,
+                        currentPhotoUrl: 'https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+नहीं',
+                        photoIndex: 0,
+                        totalPhotos: 0
+                    });
+                }
+            });
+        }
+
         function startSlideshow() {
+            if (slideshowData.length === 0) {
+                alert('दिखाने के लिए कोई कार्यक्रम नहीं है।');
+                return;
+            }
             document.getElementById('slideshow-overlay').classList.remove('hidden');
             document.getElementById('slideshow-overlay').classList.add('flex');
             slideshowIndex = 0;
@@ -613,37 +637,43 @@
         }
 
         function renderSlide() {
-            if (filteredData.length === 0) { stopSlideshow(); return; }
-            const program = filteredData[slideshowIndex];
-            const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(link => link);
+            if (slideshowData.length === 0) { stopSlideshow(); return; }
+            const slideItem = slideshowData[slideshowIndex];
             const content = document.getElementById('slideshow-content');
+            
+            let photoCounterHtml = '';
+            if (slideItem.totalPhotos > 0) {
+                photoCounterHtml = `<div class="absolute top-4 left-4 bg-black/50 text-white text-sm font-bold px-3 py-1 rounded-full">फोटो ${slideItem.photoIndex} / ${slideItem.totalPhotos}</div>`;
+            }
+
             content.innerHTML = `
                 <div class="slideshow-card w-full h-full flex flex-col md:flex-row items-center justify-center gap-8 text-white">
-                    <div class="w-full md:w-1/2 h-1/2 md:h-3/4">
-                        <img src="${photoLinks.length > 0 ? `https://lh3.googleusercontent.com/d/${getDriveFileId(photoLinks[0])}` : 'https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+नहीं'}" 
+                    <div class="relative w-full md:w-1/2 h-1/2 md:h-3/4">
+                        <img src="${slideItem.currentPhotoUrl}" 
                              onerror="this.onerror=null;this.src='https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+उपलब्ध+नहीं';" 
-                             alt="${program['कार्यक्रम का नाम']}" class="w-full h-full object-contain rounded-2xl shadow-2xl">
+                             alt="${slideItem['कार्यक्रम का नाम']}" class="w-full h-full object-contain rounded-2xl shadow-2xl">
+                        ${photoCounterHtml}
                     </div>
                     <div class="w-full md:w-1/2 text-center md:text-left">
-                        <p class="text-xl text-orange-400 font-semibold">${program['कार्यक्रम का प्रकार']}</p>
-                        <h2 class="text-4xl lg:text-6xl font-bold my-4 hindi-title">${program['कार्यक्रम का नाम']}</h2>
-                        <p class="text-lg text-gray-300 mt-2"><strong>मंडल:</strong> ${program['मंडल का नाम']}</p>
-                        <p class="text-lg text-gray-300"><strong>दिनांक:</strong> ${program['कार्यक्रम दिनांक']}</p>
-                        <p class="text-lg text-gray-300"><strong>उपस्थिति:</strong> ${program['कार्यक्रम में कुल उपस्तिथि']}</p>
+                        <p class="text-xl text-orange-400 font-semibold">${slideItem['कार्यक्रम का प्रकार']}</p>
+                        <h2 class="text-4xl lg:text-6xl font-bold my-4 hindi-title">${slideItem['कार्यक्रम का नाम']}</h2>
+                        <p class="text-lg text-gray-300 mt-2"><strong>मंडल:</strong> ${slideItem['मंडल का नाम']}</p>
+                        <p class="text-lg text-gray-300"><strong>दिनांक:</strong> ${slideItem['कार्यक्रम दिनांक']}</p>
+                        <p class="text-lg text-gray-300"><strong>उपस्थिति:</strong> ${slideItem['कार्यक्रम में कुल उपस्तिथि']}</p>
                     </div>
                 </div>
             `;
         }
         
         function nextSlide() {
-            slideshowIndex = (slideshowIndex + 1) % filteredData.length;
+            slideshowIndex = (slideshowIndex + 1) % slideshowData.length;
             renderSlide();
         }
 
         function prevSlide() {
-            slideshowIndex = (slideshowIndex - 1 + filteredData.length) % filteredData.length;
+            slideshowIndex = (slideshowIndex - 1 + slideshowData.length) % slideshowData.length;
             renderSlide();
-            clearInterval(slideshowInterval);
+            clearInterval(slideshowInterval); // Stop auto-play when user navigates manually
             isSlideshowPaused = true;
             updateSlideshowPauseIcon();
         }
@@ -653,7 +683,7 @@
             if (isSlideshowPaused) {
                 clearInterval(slideshowInterval);
             } else {
-                nextSlide();
+                nextSlide(); // Show next slide immediately and then set interval
                 slideshowInterval = setInterval(nextSlide, 7000);
             }
             updateSlideshowPauseIcon();
