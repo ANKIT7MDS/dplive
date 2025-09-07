@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>कार्यक्रम एनालिटिक्स डैशबोर्ड</title>
+
+  <!-- UI: Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- Charts: Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <!-- CSV Parser: PapaParse -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" defer></script>
+  <!-- DataTables -->
+  <link href="https://cdn.datatables.net/v/bs5/dt-2.0.6/datatables.min.css" rel="stylesheet" />
+  <script src="https://cdn.datatables.net/v/bs5/dt-2.0.6/datatables.min.js" defer></script>
+  <!-- Swiper (for modal slide) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js" defer></script>
+  <!-- PPTX generator -->
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js" defer></script>
+
+  <style>
+    :root{
+      --orange-50:#FFF7ED; --orange-100:#FFEDD5; --orange-200:#FED7AA;
+      --orange-400:#FB923C; --orange-500:#F97316; --orange-600:#EA580C;
+      --orange-800:#9A3412; --white:#FFFFFF;
+    }
+    html,body{background:var(--orange-50); color:#1f2937}
+    .brand-gradient{background:linear-gradient(135deg,var(--orange-500),var(--orange-600));}
+    .card{background:var(--white);border:1px solid #ececec;border-radius:16px;box-shadow:0 6px 24px rgba(249,115,22,.08)}
+    .btn-brand{background:var(--orange-500);color:var(--white);border:none}
+    .btn-brand:hover{background:var(--orange-600);}
+    .btn-outline-brand{border:1px solid var(--orange-400);color:var(--orange-600);background:var(--white)}
+    .btn-outline-brand:hover{background:var(--orange-100)}
+    .stat{font-weight:800;font-size:1.25rem;color:var(--orange-800)}
+    .pill{background:var(--orange-100);color:var(--orange-800);border-radius:999px;padding:.2rem .6rem;font-size:.8rem}
+    .form-select,.form-control{border-radius:12px;border:1px solid #e5e7eb}
+    a, a:hover{color:var(--orange-600)}
+    .swiper{height:440px}
+    .swiper-slide{display:flex;align-items:center;justify-content:center}
+    .swiper-slide img{max-height:380px;max-width:100%;border-radius:14px;object-fit:contain;border:1px solid #eee}
+    #eventsTable thead th{background:var(--orange-100)}
+    .kpi-icon{width:36px;height:36px;display:inline-grid;place-items:center;border-radius:10px;background:var(--orange-100);color:var(--orange-600)}
+    details[open] summary .chev{transform:rotate(90deg)}
+    .small-muted{font-size:.9rem;color:#6b7280}
+    .diag-url{word-break:break-all}
+  </style>
+</head>
+<body>
+<div class="container-xxl py-3">
+  <header class="rounded-4 p-4 brand-gradient text-white d-flex align-items-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="kpi-icon bg-white" style="color:var(--orange-600)"><i class="bi bi-bar-chart-steps"></i></div>
+      <div>
+        <h1 class="h3 m-0 fw-bold">कार्यक्रम एनालिटिक्स डैशबोर्ड</h1>
+        <div class="small opacity-75">लाइव Google Sheet से डेटा</div>
+      </div>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+      <button id="btn-refresh" class="btn btn-outline-light"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+      <button id="btn-export-ppt" class="btn btn-light text-dark"><i class="bi bi-file-earmark-slides"></i> PPT डाउनलोड</button>
+    </div>
+  </header>
+
+  <!-- Stats Row -->
+  <div class="row g-3" id="statsRow">
+    <div class="col-md-3">
+      <div class="card p-3 d-flex gap-2">
+        <div class="kpi-icon"><i class="bi bi-calendar-event"></i></div>
+        <div>
+          <div class="text-secondary small">कुल कार्यक्रम</div>
+          <div class="stat" id="statEvents">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 d-flex gap-2">
+        <div class="kpi-icon"><i class="bi bi-people"></i></div>
+        <div>
+          <div class="text-secondary small">कुल प्रतिभागी</div>
+          <div class="stat" id="statParticipants">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 d-flex gap-2">
+        <div class="kpi-icon"><i class="bi bi-activity"></i></div>
+        <div>
+          <div class="text-secondary small">औसत उपस्थिति</div>
+          <div class="stat" id="statAvg">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 d-flex gap-2">
+        <div class="kpi-icon"><i class="bi bi-geo-alt"></i></div>
+        <div>
+          <div class="text-secondary small">अद्वितीय स्थान</div>
+          <div class="stat" id="statPlaces">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card my-3 p-3">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-2">
+        <label class="form-label">माह</label>
+        <select id="filterMonth" class="form-select"><option value="">सभी</option></select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">स्थान</label>
+        <select id="filterLocation" class="form-select"><option value="">सभी</option></select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">प्रमुख अतिथि</label>
+        <select id="filterLeader" class="form-select"><option value="">सभी</option></select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">न्यूनतम प्रतिभागी</label>
+        <input type="number" id="filterMin" class="form-control" placeholder="0" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">अधिकतम प्रतिभागी</label>
+        <input type="number" id="filterMax" class="form-control" placeholder="∞" />
+      </div>
+    </div>
+    <div class="small-muted mt-2">अगर डेटा नहीं दिखे: शीट शेयरिंग “Anyone with the link → Viewer”, टैब नाम ठीक, या URL में <code>?csv=YOUR_PUBLISHED_CSV_URL</code> जोड़ें।</div>
+  </div>
+
+  <!-- Charts -->
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <div class="d-flex align-items-center justify-content-between"><h2 class="h6 m-0">दिनवार कार्यक्रम</h2><span class="pill" id="countByDate"></span></div>
+        <canvas id="chartTimeline" height="140"></canvas>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <div class="d-flex align-items-center justify-content-between"><h2 class="h6 m-0">शीर्ष स्थान (आयोजन)</h2><span class="pill" id="countTopPlaces"></span></div>
+        <canvas id="chartTopPlaces" height="140"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data table -->
+  <div class="card my-3 p-3">
+    <div class="d-flex align-items-center justify-content-between">
+      <h2 class="h6 m-0">सभी कार्यक्रम</h2>
+      <div class="text-secondary small">किसी पंक्ति पर क्लिक करें — स्लाइड मोड खुलेगा।</div>
+    </div>
+    <div class="table-responsive mt-2">
+      <table id="eventsTable" class="table table-striped align-middle" style="width:100%"></table>
+    </div>
+  </div>
+
+  <!-- Diagnostics / Self-tests -->
+  <details class="card p-3">
+    <summary class="d-flex align-items-center gap-2"><i class="bi bi-bug chev"></i><span>डायग्नोस्टिक्स (Self‑tests)</span></summary>
+    <ul class="mt-3 mb-0" id="diag"></ul>
+  </details>
+</div>
+
+<!-- Slide Modal -->
+<div class="modal fade" id="slideModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius:16px">
+      <div class="modal-header" style="background:var(--orange-100)">
+        <h5 class="modal-title" id="slideTitle">कार्यक्रम विवरण</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-lg-5">
+            <div class="card p-3">
+              <div class="small text-secondary mb-2">जानकारी</div>
+              <div id="slideMeta"></div>
+            </div>
+          </div>
+          <div class="col-lg-7">
+            <div class="card p-2">
+              <div class="small text-secondary px-2">फोटो</div>
+              <div class="swiper mySwiper">
+                <div class="swiper-wrapper" id="swiperWrapper"></div>
+                <div class="swiper-pagination"></div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnOnePpt" class="btn btn-brand"><i class="bi bi-file-earmark-slides"></i> इस कार्यक्रम की PPT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = "1tdVOdMhSIRmTzpr7q4fblvla12Kh711uBdRRka9ziNU";
+const CANDIDATE_SHEETS = ["Form_Responses","Form Responses","Form Responses 1","Responses","Sheet1"]; // auto-try
+let SHEET_NAME = "Form_Responses";
+
+let RAW=[], FILTERED=[], table, charts={}, _mySwiper;
+
+const $=id=>document.getElementById(id);
+const qs=new URLSearchParams(location.search);
+const gvizCsv=(id,name)=>`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+const gvizFirst=(id)=>`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`; // first sheet fallback
+const exportGid=(id,gid)=>`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&id=${id}&gid=${gid||0}`; // export fallback
+function toImgUrl(u0){
+  if(!u0) return null;
+  try{
+    const u=new URL(u0.trim());
+    const id=u.searchParams.get('id') || (u.pathname.split('/').includes('d') ? u.pathname.split('/')[u.pathname.split('/').indexOf('d')+1] : null);
+    if(id) return {view:`https://drive.google.com/uc?export=view&id=${id}`, thumb:`https://drive.google.com/thumbnail?id=${id}&sz=w1500`};
+  }catch(e){}
+  return {view:u0, thumb:null};
+}
+function diag(msg,ok=true,url){const li=document.createElement('li');li.innerHTML=(ok?'✅ ':'⚠️ ')+msg+(url?` <div class="diag-url small text-muted">${url}</div>`:'');$('diag').appendChild(li)}
+
+async function fetchText(url){
+  const res = await fetch(url,{credentials:'omit'});
+  const txt = await res.text();
+  const isHtml = /^\s*<!DOCTYPE|^\s*<html/i.test(txt);
+  const looksLogin = /Session expired|Sign in|signin|accounts\.google/i.test(txt);
+  const looksCsv = txt.split('\\n').slice(0,3).some(l=>l.includes(',')||l.includes(';'));
+  if(isHtml || looksLogin || !looksCsv){ throw new Error('Not CSV (maybe session/login HTML)'); }
+  return txt;
+}
+async function parseCsvFromUrl(url){
+  const txt = await fetchText(url);
+  return new Promise((res)=>Papa.parse(txt,{header:true,complete:r=>res(r.data.filter(x=>Object.values(x).some(Boolean)))}));
+}
+
+async function smartFetchSheet(){
+  // 0) explicit overrides
+  const csvOverride = qs.get('csv');
+  const gid = qs.get('gid');
+  const sheetOverride = qs.get('sheet');
+  if(csvOverride){
+    try{const rows=await parseCsvFromUrl(csvOverride); if(rows.length){diag('Loaded via ?csv override',true,csvOverride); return rows;}}catch(e){diag('Failed ?csv override',false,csvOverride);}
+  }
+  if(sheetOverride){
+    try{const rows=await parseCsvFromUrl(gvizCsv(SHEET_ID,sheetOverride)); if(rows.length){SHEET_NAME=sheetOverride; diag('Loaded via gviz with ?sheet',true,gvizCsv(SHEET_ID,sheetOverride)); return rows;}}catch(e){diag('Failed gviz ?sheet',false,gvizCsv(SHEET_ID,sheetOverride));}
+  }
+  if(gid){
+    try{const rows=await parseCsvFromUrl(exportGid(SHEET_ID,gid)); if(rows.length){diag('Loaded via export?gid=? override',true,exportGid(SHEET_ID,gid)); return rows;}}catch(e){diag('Failed export?gid override',false,exportGid(SHEET_ID,gid));}
+  }
+  // 1) Try candidate sheet names
+  for(const name of CANDIDATE_SHEETS){
+    try{const url=gvizCsv(SHEET_ID,name); const rows=await parseCsvFromUrl(url); if(rows.length){SHEET_NAME=name; diag('Loaded via gviz + sheet='+name,true,url); return rows;}}catch(e){}
+  }
+  // 2) Try first-sheet gviz (no sheet param)
+  try{const url=gvizFirst(SHEET_ID); const rows=await parseCsvFromUrl(url); if(rows.length){diag('Loaded via gviz (first sheet)',true,url); return rows;}}catch(e){}
+  // 3) Try export?format=csv&gid=0 (or override gid if found in HTML later)
+  try{const url=exportGid(SHEET_ID,0); const rows=await parseCsvFromUrl(url); if(rows.length){diag('Loaded via export?format=csv&gid=0',true,url); return rows;}}catch(e){}
+  throw new Error('कोई भी CSV endpoint डेटा नहीं दे रहा — शेयरिंग/टैब नाम/पब्लिश टू वेब जाँचें');
+}
+
+function normalizeRow(r){
+  const dateStr=(r["Timestamp"]||"").trim();
+  const progDate=(r["कार्यक्रम तिथि"]||r["कार्यक्रम तिथि "]||r["कार्यक्रम\\u00A0तिथि"]||"").trim();
+  const place=(r["कार्यक्रम स्थान"]||r["स्थान"]||"").trim();
+  const title=(r["कार्यक्रम का नाम"]||r["कार्यक्रम"]||"").trim();
+  const leader=(r["कार्यक्रम में प्रमुख"]||r["प्रमुख"]||"").trim();
+  const participants=parseInt((r["कर्मि (प्रतिभागी)"]||r["कर्म (प्रतिभागी)"]||r["कर्मि संख्या"]||r["कर्मी (प्रतिभागी)"]||r["कर्मि"]||r["प्रतिभागी"]||r["कुल प्रतिभागी"]||"0").toString().replace(/[^0-9]/g,""))||0;
+  const photos=(r["कार्यक्रम के फोटो"]||r["फोटो"]||"").trim();
+  const notes=(r["कार्यक्रम से संबंधित अन्य जानकारी संक्षिप्त में"]||r["अन्य जानकारी"]||"").trim();
+  const d=progDate||dateStr; const jsDate=d?new Date(d):null; const monthKey=jsDate?`${jsDate.getFullYear()}-${String(jsDate.getMonth()+1).padStart(2,'0')}`:"";
+  const photoList=photos.split(',').map(s=>s.trim()).filter(Boolean);
+  return { ts:dateStr, date:d, jsDate, monthKey, place, title, participants, leader, photos:photoList, notes };
+}
+
+const unique=a=>[...new Set(a.filter(Boolean))]
+function fillFilters(rows){const months=unique(rows.map(r=>r.monthKey)).sort();const places=unique(rows.map(r=>r.place)).sort();const leaders=unique(rows.map(r=>r.leader)).sort();const add=(id,it)=>{$(id).innerHTML='<option value=\"\">सभी</option>'+it.map(v=>`<option value=\"${v}\">${v}</option>`).join('')};add('filterMonth',months);add('filterLocation',places);add('filterLeader',leaders)}
+function applyFilters(){const m=$('filterMonth').value,loc=$('filterLocation').value,lead=$('filterLeader').value;const min=parseInt($('filterMin').value||0);const max=parseInt($('filterMax').value||9999999);FILTERED=RAW.filter(r=>(!m||r.monthKey===m)&&(!loc||r.place===loc)&&(!lead||r.leader===lead)&&(r.participants>=min&&r.participants<=max));renderStats(FILTERED);renderCharts(FILTERED);renderTable(FILTERED)}
+function renderStats(rows){const total=rows.length,participants=rows.reduce((a,b)=>a+(b.participants||0),0),avg=total?Math.round(participants/total):0,places=unique(rows.map(r=>r.place)).length;$('statEvents').textContent=total;$('statParticipants').textContent=participants.toLocaleString('en-IN');$('statAvg').textContent=avg.toLocaleString('en-IN');$('statPlaces').textContent=places}
+function groupBy(arr,fn){return arr.reduce((o,x)=>{const k=fn(x)||'—';o[k]=(o[k]||0)+1;return o;},{})}
+function topN(obj,n){return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n)}
+function ensureChart(id,type,data,options){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),{type,data,options})}
+function renderCharts(rows){const byDate={};rows.forEach(r=>{if(r.jsDate){const k=r.jsDate.toISOString().slice(0,10);byDate[k]=(byDate[k]||0)+1}});const labels=Object.keys(byDate).sort();const vals=labels.map(k=>byDate[k]);$('countByDate').textContent=`${vals.reduce((a,b)=>a+b,0)} कार्यक्रम`;ensureChart('chartTimeline','line',{labels,datasets:[{label:'कार्यक्रम',data:vals,borderColor:'rgba(234,88,12,.9)',backgroundColor:'rgba(251,146,60,.25)',tension:.35,fill:true}]},{plugins:{legend:{labels:{color:'#111'}}},scales:{x:{ticks:{color:'#666'}},y:{ticks:{color:'#666'}}}});const byPlace=groupBy(rows,r=>r.place);const tp=topN(byPlace,7);$('countTopPlaces').textContent=`${tp.length} स्थान`;ensureChart('chartTopPlaces','bar',{labels:tp.map(x=>x[0]),datasets:[{label:'आयोजन',data:tp.map(x=>x[1]),backgroundColor:'rgba(249,115,22,.7)'}]},{plugins:{legend:{labels:{color:'#111'}}},scales:{x:{ticks:{color:'#666'}},y:{ticks:{color:'#666'}}}})}
+function renderTable(rows){const columns=[{title:'तिथि',data:'date'},{title:'स्थान',data:'place'},{title:'कार्यक्रम',data:'title'},{title:'प्रमुख',data:'leader'},{title:'प्रतिभागी',data:'participants'},{title:'फोटो',data:'photos',render:p=>p&&p.length?`<a target=_blank href=\"${p[0]}\">लिंक</a>`:'—'}];const data=rows.map(r=>({...r}));if(!window.DataTable){const tbl=$('eventsTable');tbl.innerHTML='<thead><tr>'+columns.map(c=>`<th>${c.title}</th>`).join('')+'</tr></thead>'+'<tbody>'+data.map(r=>`<tr><td>${r.date||''}</td><td>${r.place||''}</td><td>${r.title||''}</td><td>${r.leader||''}</td><td>${r.participants||0}</td><td>${(r.photos&&r.photos[0])?`<a target=_blank href=\"${r.photos[0]}\">लिंक</a>`:'—'}</td></tr>`).join('')+'</tbody>';tbl.querySelectorAll('tbody tr').forEach((tr,i)=>tr.addEventListener('click',()=>openSlide(data[i])));return;}if(table){table.clear();table.rows.add(data).draw();return;}table=new window.DataTable('#eventsTable',{data,columns,order:[[0,'asc']],pageLength:10,responsive:true});$('eventsTable').addEventListener('click',e=>{const tr=e.target.closest('tr');if(!tr)return;const rowObj=table.row(tr).data();if(rowObj)openSlide(rowObj);})}
+function openSlide(row){$('slideTitle').textContent=row.title||'कार्यक्रम विवरण';$('slideMeta').innerHTML=`
+  <div class="mb-2"><span class="text-secondary">तिथि:</span> <span class="pill">${row.date||'—'}</span></div>
+  <div class="mb-2"><span class="text-secondary">स्थान:</span> ${row.place||'—'}</div>
+  <div class="mb-2"><span class="text-secondary">प्रतिभागी:</span> ${row.participants||0}</div>
+  <div class="mb-2"><span class="text-secondary">प्रमुख:</span> ${row.leader||'—'}</div>
+  <div class="mb-2"><span class="text-secondary">अन्य जानकारी:</span> ${row.notes||'—'}</div>
+  <div class="mb-2">${(row.photos||[]).map((u,i)=>`<a class="badge bg-warning-subtle text-dark me-1" target="_blank" href="${u}">फोटो ${i+1}</a>`).join('')}</div>`;const wrapper=$('swiperWrapper');wrapper.innerHTML='';const imgs=(row.photos||[]);if(imgs.length===0){wrapper.innerHTML='<div class="swiper-slide"><div class="text-secondary">कोई फोटो लिंक नहीं</div></div>';}else{imgs.forEach(u=>{const {view,thumb}=toImgUrl(u);const img=`<img loading="lazy" src="${view}" onerror="(function(el,alt){el.onerror=null; if(alt){el.src=alt;} else {el.replaceWith(document.createTextNode('छवि लोड नहीं हो पाई'));}})(this,'${thumb or ''}')">`;wrapper.insertAdjacentHTML('beforeend', `<div class="swiper-slide">${img}</div>`);});}if(_mySwiper)_mySwiper.destroy(true,true);_mySwiper=new Swiper('.mySwiper',{loop:imgs.length>1,pagination:{el:'.swiper-pagination',clickable:true},navigation:{nextEl:'.swiper-button-next',prevEl:'.swiper-button-prev'},keyboard:true});$('btnOnePpt').onclick=()=>exportPpt([row]);new bootstrap.Modal($('slideModal')).show()}
+async function exportPpt(rows){const pptx=new PptxGenJS();pptx.layout='16x9';for(const r of rows){const s=pptx.addSlide();s.addText(r.title||'कार्यक्रम',{x:0.5,y:0.4,w:9,h:0.6,fontSize:26,bold:true,color:'9A3412'});s.addShape(pptx.ShapeType.rect,{x:0.5,y:1.05,w:9,h:0.35,fill:{color:'FDEAD7'},line:{color:'FDEAD7'}});s.addText(`${r.date||''} · ${r.place||''}`,{x:0.6,y:1.05,w:8.8,h:0.35,fontSize:14,color:'9A3412'});s.addText(`प्रमुख: ${r.leader||'—'}`,{x:0.5,y:1.6,w:5,h:0.4,fontSize:14,color:'9A3412'});s.addText(`प्रतिभागी: ${r.participants||0}`,{x:6.2,y:1.6,w:3,h:0.4,fontSize:14,color:'9A3412'});s.addText(r.notes||'',{x:0.5,y:2.1,w:9,h:1.1,fontSize:12,color:'4B5563'});const u=r.photos&&r.photos[0];if(u){const {view}=toImgUrl(u);try{await s.addImage({data:await fetchAsDataUrl(view),x:0.5,y:3.3,w:9,h:4.8,sizing:{type:'contain',w:9,h:4.8}})}catch(e){s.addText('छवि जोड़ने में समस्या। लिंक: '+(u||''),{x:0.5,y:3.3,w:9,h:1,fontSize:12,color:'AA0000'})}}}const fname=`Programs_${new Date().toISOString().slice(0,10)}.pptx`;await pptx.writeFile({fileName:fname})}
+async function fetchAsDataUrl(url){const res=await fetch(url);const blob=await res.blob();return await new Promise(r=>{const rd=new FileReader();rd.onload=()=>r(rd.result);rd.readAsDataURL(blob);})}
+
+async function loadData(){ try{ const rows=await smartFetchSheet(); RAW=rows.map(normalizeRow).filter(r=>r.title||r.place||r.date); diag('Rows loaded: '+RAW.length, RAW.length>0); fillFilters(RAW); applyFilters(); } catch(e){ console.error(e); alert('डेटा लोड नहीं हो पाया: '+e.message + '\\nQuick fix: शीट को Publish to web करें और इस फाइल के URL में ?csv=PUBLIC_CSV_URL जोड़ें.'); } }
+window.addEventListener('DOMContentLoaded', ()=>{ $('btn-refresh').addEventListener('click', loadData); $('btn-export-ppt').addEventListener('click', ()=>exportPpt(FILTERED)); ['filterMonth','filterLocation','filterLeader','filterMin','filterMax'].forEach(id=>{$(id).addEventListener('change', applyFilters);$(id).addEventListener('keyup', applyFilters)}); loadData(); });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

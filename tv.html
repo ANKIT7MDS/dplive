@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>टीवी मोड — कार्यक्रम स्लाइडशो</title>
+
+  <!-- UI: Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- CSV Parser: PapaParse -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" defer></script>
+  <!-- Swiper -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js" defer></script>
+
+  <style>
+    :root{
+      --orange-50:#FFF7ED; --orange-100:#FFEDD5; --orange-200:#FED7AA;
+      --orange-400:#FB923C; --orange-500:#F97316; --orange-600:#EA580C;
+      --orange-800:#9A3412; --white:#FFFFFF;
+    }
+    html,body{background:var(--orange-50); color:#1f2937}
+    .brand-gradient{background:linear-gradient(135deg,var(--orange-500),var(--orange-600));}
+    .card{background:var(--white);border:1px solid #ececec;border-radius:16px;box-shadow:0 6px 24px rgba(249,115,22,.08)}
+    .btn-brand{background:var(--orange-500);color:var(--white);border:none}
+    .btn-brand:hover{background:var(--orange-600);}
+    .btn-outline-brand{border:1px solid var(--orange-400);color:var(--orange-600);background:var(--white)}
+    .btn-outline-brand:hover{background:var(--orange-100)}
+    .swiper{height:78vh}
+    .swiper-slide{display:flex;align-items:center;justify-content:center}
+    .swiper-slide img{max-height:64vh;max-width:100%;border-radius:14px;object-fit:contain;border:1px solid #eee}
+  </style>
+</head>
+<body>
+<div class="container-xxl py-3">
+  <header class="rounded-4 p-4 brand-gradient text-white d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <i class="bi bi-display fs-3"></i>
+      <div>
+        <div class="h4 m-0 fw-bold">टीवी मोड</div>
+        <div class="small opacity-75">सिर्फ कार्यक्रम की जानकारी और फोटो</div>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <button id="tv-prev" class="btn btn-outline-light"><i class="bi bi-chevron-left"></i></button>
+      <button id="tv-play" class="btn btn-light text-dark"><i class="bi bi-play-fill"></i> / <i class="bi bi-pause-fill"></i></button>
+      <button id="tv-next" class="btn btn-outline-light"><i class="bi bi-chevron-right"></i></button>
+    </div>
+  </header>
+
+  <div class="card p-2">
+    <div class="swiper tvSwiper">
+      <div class="swiper-wrapper" id="tvWrapper"></div>
+      <div class="swiper-pagination"></div>
+    </div>
+  </div>
+  <div class="small text-secondary mt-2">नोट: यह फाइल सभी कार्यक्रमों से स्लाइड बनाती है (कोई फ़िल्टर नहीं)।</div>
+</div>
+
+<script>
+const SHEET_ID = "1tdVOdMhSIRmTzpr7q4fblvla12Kh711uBdRRka9ziNU";
+const CANDIDATE_SHEETS = ["Form_Responses","Form Responses","Form Responses 1","Responses","Sheet1"];
+const TV_AUTOPLAY_MS = 12000;
+
+let RAW=[], tvSwiper;
+const qs=new URLSearchParams(location.search);
+const gvizCsv=(id,name)=>`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+const gvizFirst=(id)=>`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
+const exportGid=(id,gid)=>`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&id=${id}&gid=${gid||0}`;
+const $=id=>document.getElementById(id);
+
+function toImgUrl(u0){
+  if(!u0) return null;
+  try{
+    const u=new URL(u0.trim());
+    const id=u.searchParams.get('id') || (u.pathname.split('/').includes('d') ? u.pathname.split('/')[u.pathname.split('/').indexOf('d')+1] : null);
+    if(id) return {view:`https://drive.google.com/uc?export=view&id=${id}`, thumb:`https://drive.google.com/thumbnail?id=${id}&sz=w1500`};
+  }catch(e){}
+  return {view:u0, thumb:null};
+}
+function looksBadCsv(txt){
+  const isHtml = /^\\s*<!DOCTYPE|^\\s*<html/i.test(txt);
+  const looksLogin = /Session expired|Sign in|signin|accounts\\.google/i.test(txt);
+  const looksCsv = txt.split('\\n').slice(0,3).some(l=>l.includes(',')||l.includes(';'));
+  return isHtml || looksLogin || !looksCsv;
+}
+async function parseCsvFromUrl(url){
+  const res = await fetch(url,{credentials:'omit'});
+  const txt = await res.text();
+  if(looksBadCsv(txt)) throw new Error('Not CSV (maybe login/session)');
+  return new Promise((res2)=>Papa.parse(txt,{header:true,complete:r=>res2(r.data.filter(x=>Object.values(x).some(Boolean)))}));
+}
+async function smartFetchSheet(){
+  const csvOverride = qs.get('csv');
+  const gid = qs.get('gid');
+  const sheetOverride = qs.get('sheet');
+  if(csvOverride){ try{return await parseCsvFromUrl(csvOverride)}catch(e){} }
+  if(sheetOverride){ try{return await parseCsvFromUrl(gvizCsv(SHEET_ID,sheetOverride))}catch(e){} }
+  if(gid){ try{return await parseCsvFromUrl(exportGid(SHEET_ID,gid))}catch(e){} }
+  for(const name of CANDIDATE_SHEETS){ try{const rows=await parseCsvFromUrl(gvizCsv(SHEET_ID,name)); if(rows.length) return rows;}catch(e){} }
+  try{const rows=await parseCsvFromUrl(gvizFirst(SHEET_ID)); if(rows.length) return rows;}catch(e){}
+  try{const rows=await parseCsvFromUrl(exportGid(SHEET_ID,0)); if(rows.length) return rows;}catch(e){}
+  throw new Error('CSV endpoints से डेटा नहीं मिला — शेयरिंग/टैब नाम जाँचें');
+}
+function normalizeRow(r){const dateStr=(r["Timestamp"]||"").trim();const progDate=(r["कार्यक्रम तिथि"]||r["कार्यक्रम तिथि "]||r["कार्यक्रम\\u00A0तिथि"]||"").trim();const place=(r["कार्यक्रम स्थान"]||r["स्थान"]||"").trim();const title=(r["कार्यक्रम का नाम"]||r["कार्यक्रम"]||"").trim();const leader=(r["कार्यक्रम में प्रमुख"]||r["प्रमुख"]||"").trim();const participants=parseInt((r["कर्मि (प्रतिभागी)"]||r["кर्म (प्रतिभागी)"]||r["कर्मि संख्या"]||r["कर्मी (प्रतिभागी)"]||r["कर्मि"]||r["प्रतिभागी"]||"0").toString().replace(/[^0-9]/g,""))||0;const photos=(r["कार्यक्रम के फोटो"]||r["फोटो"]||"").trim();const notes=(r["कार्यक्रम से संबंधित अन्य जानकारी संक्षिप्त में"]||r["अन्य जानकारी"]||"").trim();const d=progDate||dateStr;const photoList=photos.split(',').map(s=>s.trim()).filter(Boolean);return{date:d,place,title,leader,participants,photos:photoList,notes}}
+function buildTVSlides(rows){const wrapper=$('tvWrapper');wrapper.innerHTML='';const slides=[];rows.forEach(r=>{const pics=(r.photos&&r.photos.length?r.photos:[null]);pics.forEach(p=>slides.push({row:r,photo:p}))});if(!slides.length){wrapper.innerHTML='<div class="swiper-slide"><div class="p-5 text-center">कोई डेटा नहीं</div></div>'; initTVSwiper(0); return;}slides.forEach(s=>{const r=s.row;const {view,thumb}=toImgUrl(s.photo);const img = s.photo? `<img loading="lazy" src="${view}" class="img-fluid" style="max-height:64vh;border-radius:14px;border:1px solid #eee" onerror="(function(el,alt){el.onerror=null; if(alt){el.src=alt;} else {el.replaceWith(document.createTextNode('छवि लोड नहीं हो पाई'));}})(this,'${thumb or ''}')">` : '<div class="text-secondary">फोटो उपलब्ध नहीं</div>';const html = `
+  <div class="swiper-slide">
+    <div class="row g-3 align-items-center justify-content-center" style="min-height:70vh">
+      <div class="col-xl-5 col-lg-6">
+        <div class="p-3" style="background:var(--orange-100);border-radius:14px">
+          <div class="fw-bold" style="font-size:1.6rem;color:var(--orange-800)">${r.title||'कार्यक्रम'}</div>
+          <div class="mt-1">${r.date||''} · ${r.place||''}</div>
+          <div class="mt-1">प्रमुख: ${r.leader||'—'} | प्रतिभागी: ${r.participants||0}</div>
+          <div class="mt-2 small text-secondary">${r.notes||''}</div>
+        </div>
+      </div>
+      <div class="col-xl-7 col-lg-6 text-center">${img}</div>
+    </div>
+  </div>`;
+  wrapper.insertAdjacentHTML('beforeend', html);
+  });
+  initTVSwiper(slides.length);
+}
+function initTVSwiper(n){if(tvSwiper) tvSwiper.destroy(true,true); tvSwiper=new Swiper('.tvSwiper',{loop:n>1,autoplay:{delay:TV_AUTOPLAY_MS,disableOnInteraction:false},pagination:{el:'.tvSwiper .swiper-pagination',clickable:true},keyboard:true}); $('tv-prev').onclick=()=>tvSwiper?.slidePrev(); $('tv-next').onclick=()=>tvSwiper?.slideNext(); $('tv-play').onclick=()=>{if(!tvSwiper)return; if(tvSwiper.autoplay?.running){tvSwiper.autoplay.stop();} else {tvSwiper.autoplay.start();} };}
+async function init(){ try{ const rows=(await smartFetchSheet()).map(normalizeRow).filter(r=>r.title||r.place||r.date); RAW=rows; buildTVSlides(RAW); } catch(e){ console.error(e); alert('डेटा लोड नहीं हो पाया: '+e.message + '\\nQuick fix: शीट को Publish to web करें और इस फाइल के URL में ?csv=PUBLIC_CSV_URL जोड़ें.'); } }
+window.addEventListener('DOMContentLoaded', init);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
