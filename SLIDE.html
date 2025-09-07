@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js Date Adapter -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <!-- jsPDF and html2canvas for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -101,11 +103,15 @@
             <!-- Programs View -->
             <div id="program-view">
                 <!-- Filters -->
-                <div class="bg-white p-4 rounded-xl shadow-md mb-6 flex flex-col md:flex-row gap-4 items-center">
+                <div class="bg-white p-4 rounded-xl shadow-md mb-6 flex flex-col md:flex-row gap-4 items-center flex-wrap">
                     <h3 class="text-lg font-semibold text-gray-700 hindi-title">फ़िल्टर करें:</h3>
-                    <select id="mandalFilter" class="w-full md:w-auto bg-gray-100 border-2 border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:border-orange-400"></select>
-                    <select id="typeFilter" class="w-full md:w-auto bg-gray-100 border-2 border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:border-orange-400"></select>
-                    <button id="resetFilters" class="w-full md:w-auto text-sm text-gray-600 hover:text-orange-600 font-medium">रीसेट करें</button>
+                    <select id="mandalFilter" class="w-full sm:w-auto bg-gray-100 border-2 border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:border-orange-400"></select>
+                    <select id="typeFilter" class="w-full sm:w-auto bg-gray-100 border-2 border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:border-orange-400"></select>
+                    <button id="resetFilters" class="w-full sm:w-auto text-sm text-gray-600 hover:text-orange-600 font-medium">रीसेट करें</button>
+                    <button id="bulkDownloadBtn" class="btn-primary sm:ml-auto mt-2 sm:mt-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        बल्क रिपोर्ट डाउनलोड
+                    </button>
                 </div>
 
                 <div id="program-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -204,6 +210,7 @@
                 typeFilter.selectedIndex = 0;
                 applyFilters();
             });
+            document.getElementById('bulkDownloadBtn').addEventListener('click', downloadBulkPdf);
             mandalFilter.addEventListener('change', applyFilters);
             typeFilter.addEventListener('change', applyFilters);
             
@@ -230,7 +237,7 @@
             try {
                 const response = await fetch(CSV_URL);
                 const csvText = await response.text();
-                programData = parseCsv(csvText);
+                programData = robustParseCsv(csvText);
                 filteredData = [...programData];
                 
                 if (programData.length > 0) {
@@ -247,24 +254,37 @@
             }
         }
         
-        function parseCsv(csvText) {
-            const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
+        function robustParseCsv(csvText) {
+            const lines = csvText.split(/\r\n|\n/);
             if (lines.length < 2) return [];
-            const headerLine = lines[0];
-            const headerMatches = headerLine.match(/(?:[^,"]+|"[^"]*")+/g) || [];
-            const headers = headerMatches.map(header => header.replace(/^"|"$/g, '').trim());
+
+            // Sanitize headers, especially the first one which might have a BOM character
+            const rawHeaders = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            const headers = rawHeaders.map((h, index) => {
+                let cleanHeader = h.trim().replace(/^"|"$/g, '');
+                if (index === 0) {
+                    cleanHeader = cleanHeader.replace(/^\uFEFF/, ''); // Remove BOM
+                }
+                return cleanHeader;
+            });
+            
             const data = [];
+
             for (let i = 1; i < lines.length; i++) {
-                const row = lines[i];
-                if (!row) continue;
-                const valueMatches = row.match(/(?:[^,"]+|"[^"]*")+/g) || [];
-                if (valueMatches.length !== headers.length) continue;
-                const values = valueMatches.map(value => value.replace(/^"|"$/g, '').trim());
-                const obj = {};
-                headers.forEach((header, index) => {
-                    obj[header] = values[index] || '';
-                });
-                data.push(obj);
+                if (!lines[i].trim()) continue;
+
+                // This regex handles commas inside quoted fields
+                const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                
+                if (values.length === headers.length) {
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        obj[header] = (values[index] || '').trim().replace(/^"|"$/g, '');
+                    });
+                    data.push(obj);
+                } else {
+                    console.warn(`Skipping row due to column mismatch. Expected ${headers.length} columns, but got ${values.length}. Row content:`, lines[i]);
+                }
             }
             return data;
         }
@@ -308,7 +328,7 @@
             
             programGrid.querySelectorAll('.view-photos-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const programIndex = parseInt(e.target.dataset.index);
+                    const programIndex = parseInt(e.currentTarget.dataset.index);
                     const program = filteredData[programIndex];
                     const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(link => link);
                     openModal(photoLinks);
@@ -316,15 +336,15 @@
             });
              programGrid.querySelectorAll('.download-pdf-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const programIndex = parseInt(e.target.dataset.index);
+                    const programIndex = parseInt(e.currentTarget.dataset.index);
                     downloadPdf(filteredData[programIndex]);
                 });
             });
         }
         
         function setupFilters() {
-            const mandals = [...new Set(programData.map(p => p['मंडल का नाम']))].sort();
-            const types = [...new Set(programData.map(p => p['कार्यक्रम का प्रकार']))].sort();
+            const mandals = [...new Set(programData.map(p => p['मंडल का नाम']))].filter(Boolean).sort();
+            const types = [...new Set(programData.map(p => p['कार्यक्रम का प्रकार']))].filter(Boolean).sort();
             
             mandalFilter.innerHTML = `<option value="">सभी मंडल</option>` + mandals.map(m => `<option value="${m}">${m}</option>`).join('');
             typeFilter.innerHTML = `<option value="">सभी प्रकार</option>` + types.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -350,6 +370,7 @@
             
             if (photoLinks.length === 0) return;
             
+            let currentActiveThumb = 0;
             thumbnailContainer.innerHTML = '';
             photoLinks.forEach((link, index) => {
                 const fileId = getDriveFileId(link);
@@ -357,15 +378,16 @@
                 const thumb = document.createElement('img');
                 thumb.src = `https://drive.google.com/thumbnail?id=${fileId}`;
                 thumb.className = 'h-16 w-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-orange-500';
-                thumb.onclick = () => {
-                    setActiveThumbnail(index);
-                };
+                thumb.onclick = () => setActiveThumbnail(index);
                 thumbnailContainer.appendChild(thumb);
             });
             
             function setActiveThumbnail(index) {
+                currentActiveThumb = index;
                 const fileId = getDriveFileId(photoLinks[index]);
-                modalImage.src = `https://drive.google.com/uc?export=view&id=${fileId}`;
+                // Using a more reliable URL for full-size images
+                modalImage.src = `https://lh3.googleusercontent.com/d/${fileId}`;
+                modalImage.onerror = () => { modalImage.src = 'https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+उपलब्ध+नहीं'; };
                 thumbnailContainer.querySelectorAll('img').forEach((img, i) => {
                     img.classList.toggle('border-orange-500', i === index);
                 });
@@ -381,24 +403,55 @@
             const modal = document.getElementById('imageModal');
             modal.querySelector('.modal-content').classList.add('scale-95');
             setTimeout(() => modal.classList.add('hidden'), 300);
-            
-            // Reset zoom
             const modalImage = document.getElementById('modalImage');
             modalImage.classList.remove('cursor-zoom-out', 'scale-150');
             modalImage.classList.add('cursor-zoom-in');
         }
 
         // --- PDF Download ---
+        
+        // Helper function to fetch an image and convert it to a Data URI
+        async function imageUrlToDataUrl(url) {
+            try {
+                // Use a proxy or a server-side function if available for more reliability
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch image: ${response.statusText}`);
+                }
+                const blob = await response.blob();
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.error(`Could not convert image ${url} to data URL:`, error);
+                return null; // Return null if fetching or conversion fails
+            }
+        }
+
         async function downloadPdf(program) {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
             
-            // Using a temporary element for rendering to avoid display issues
+            const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(link => link);
+            let photoHtml = '';
+
+            if (photoLinks.length > 0 && getDriveFileId(photoLinks[0])) {
+                const imageUrl = `https://drive.google.com/thumbnail?id=${getDriveFileId(photoLinks[0])}`;
+                const dataUrl = await imageUrlToDataUrl(imageUrl);
+                if (dataUrl) {
+                    photoHtml = `<img src="${dataUrl}" style="max-width: 150px; margin-bottom: 15px; border-radius: 8px;" />`;
+                }
+            }
+
             const element = document.createElement('div');
-            element.style.width = '210mm'; // A4 width
+            element.style.width = '210mm';
             element.style.padding = '20px';
             element.style.backgroundColor = 'white';
             element.innerHTML = `
+                ${photoHtml}
                 <h1 style="font-size: 24px; color: #f97316; border-bottom: 2px solid #fb923c; padding-bottom: 10px; margin-bottom: 20px;">${program['कार्यक्रम का नाम']}</h1>
                 <p><strong>दिनांक:</strong> ${program['कार्यक्रम दिनांक']}</p>
                 <p><strong>स्थान:</strong> ${program['कार्यक्रम स्थान']}</p>
@@ -410,47 +463,92 @@
             `;
             document.body.appendChild(element);
 
-            const canvas = await html2canvas(element, { scale: 2 });
-            document.body.removeChild(element);
+            try {
+                const canvas = await html2canvas(element, { scale: 2 });
+                const imgData = canvas.toDataURL('image/png');
+                const imgProps= pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save(`${program['कार्यक्रम का नाम']}.pdf`);
+            } catch (error) {
+                console.error("PDF generation error:", error);
+                alert("PDF बनाने में त्रुटि हुई।");
+            } finally {
+                document.body.removeChild(element);
+            }
+        }
 
-            const imgData = canvas.toDataURL('image/png');
-            const imgProps= pdf.getImageProperties(imgData);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        async function downloadBulkPdf() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const element = document.createElement('div');
             
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`${program['कार्यक्रम का नाम']}.pdf`);
+            let reportHtml = `
+                <div style="font-family: Arial, sans-serif; font-size: 9px; padding: 10mm; width: 190mm;">
+                <h1 style="font-size: 18px; color: #f97316;">प्रवास कार्यक्रम रिपोर्ट</h1>
+                <p><strong>कुल कार्यक्रम:</strong> ${filteredData.length}</p>
+                <p><strong>रिपोर्ट दिनांक:</strong> ${new Date().toLocaleDateString('hi-IN')}</p>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <thead style="background-color: #f2f2f2;">
+                        <tr>
+                            <th style="border: 1px solid #ddd; padding: 4px;">क्र.</th>
+                            <th style="border: 1px solid #ddd; padding: 4px;">कार्यक्रम</th>
+                            <th style="border: 1px solid #ddd; padding: 4px;">मंडल</th>
+                            <th style="border: 1px solid #ddd; padding: 4px;">प्रकार</th>
+                            <th style="border: 1px solid #ddd; padding: 4px;">दिनांक</th>
+                            <th style="border: 1px solid #ddd; padding: 4px;">उपस्थिति</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            filteredData.forEach((p, index) => {
+                reportHtml += `
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 4px;">${index + 1}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px;">${p['कार्यक्रम का नाम']}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px;">${p['मंडल का नाम']}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px;">${p['कार्यक्रम का प्रकार']}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px;">${p['कार्यक्रम दिनांक']}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px;">${p['कार्यक्रम में कुल उपस्तिथि']}</td>
+                    </tr>`;
+            });
+            reportHtml += `</tbody></table></div>`;
+            
+            element.innerHTML = reportHtml;
+            document.body.appendChild(element);
+
+            await pdf.html(element, {
+                callback: function(doc) {
+                    doc.save('कार्यक्रम_रिपोर्ट.pdf');
+                    document.body.removeChild(element);
+                },
+                x: 0,
+                y: 0,
+                width: 210,
+                windowWidth: element.scrollWidth
+            });
         }
 
         // --- Dashboard ---
         function processAndRenderDashboard() {
-            const analytics = {
-                byMandal: {},
-                byType: {},
-                byDate: {},
-                totalAttendance: 0
-            };
-
+            const analytics = { byMandal: {}, byType: {}, byDate: {}, totalAttendance: 0 };
             programData.forEach(p => {
-                // By Mandal
-                analytics.byMandal[p['मंडल का नाम']] = (analytics.byMandal[p['मंडल का नाम']] || 0) + 1;
-                // By Type
-                analytics.byType[p['कार्यक्रम का प्रकार']] = (analytics.byType[p['कार्यक्रम का प्रकार']] || 0) + 1;
-                // By Date
-                const date = p['कार्यक्रम दिनांक'].split('/').reverse().join('-'); // Assuming DD/MM/YYYY
-                if(!isNaN(new Date(date))) {
-                   analytics.byDate[date] = (analytics.byDate[date] || 0) + 1;
+                if(p['मंडल का नाम']) analytics.byMandal[p['मंडल का नाम']] = (analytics.byMandal[p['मंडल का नाम']] || 0) + 1;
+                if(p['कार्यक्रम का प्रकार']) analytics.byType[p['कार्यक्रम का प्रकार']] = (analytics.byType[p['कार्यक्रम का प्रकार']] || 0) + 1;
+                const dateParts = (p['कार्यक्रम दिनांक'] || '').split('/');
+                if (dateParts.length === 3) {
+                    const date = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+                    if(!isNaN(new Date(date))) {
+                       analytics.byDate[date] = (analytics.byDate[date] || 0) + 1;
+                    }
                 }
-                // Attendance
                 analytics.totalAttendance += parseInt(p['कार्यक्रम में कुल उपस्तिथि']) || 0;
             });
             
-            // Render Stats
             document.getElementById('total-programs').textContent = programData.length;
             document.getElementById('total-mandals').textContent = Object.keys(analytics.byMandal).length;
             document.getElementById('total-attendance').textContent = analytics.totalAttendance;
             
-            // Render Charts
             renderPieChart(analytics.byType, 'typesChart', 'कार्यक्रम के प्रकार');
             renderBarChart(analytics.byMandal, 'mandalsChart', 'मंडल अनुसार कार्यक्रम');
             renderLineChart(analytics.byDate, 'timelineChart', 'समयरेखा पर कार्यक्रम');
@@ -463,12 +561,7 @@
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(data),
-                    datasets: [{
-                        label: label,
-                        data: Object.values(data),
-                        backgroundColor: ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5'],
-                        hoverOffset: 4
-                    }]
+                    datasets: [{ label: label, data: Object.values(data), backgroundColor: ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5'], hoverOffset: 4 }]
                 },
                 options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: label, font: { size: 16 } } } }
             });
@@ -476,22 +569,13 @@
         
         function renderBarChart(data, canvasId, label) {
             const sortedData = Object.entries(data).sort(([,a],[,b]) => b-a);
-            const labels = sortedData.map(item => item[0]);
-            const values = sortedData.map(item => item[1]);
-
             const ctx = document.getElementById(canvasId).getContext('2d');
             if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
             chartInstances[canvasId] = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: labels,
-                    datasets: [{
-                        label: label,
-                        data: values,
-                        backgroundColor: '#fb923c',
-                        borderColor: '#f97316',
-                        borderWidth: 1
-                    }]
+                    labels: sortedData.map(item => item[0]),
+                    datasets: [{ label: label, data: sortedData.map(item => item[1]), backgroundColor: '#fb923c', borderColor: '#f97316', borderWidth: 1 }]
                 },
                 options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false }, title: { display: true, text: label, font: { size: 16 } } } }
             });
@@ -500,25 +584,14 @@
         function renderLineChart(data, canvasId, label) {
             const sortedDates = Object.keys(data).sort();
             const chartData = sortedDates.map(date => ({x: date, y: data[date]}));
-
             const ctx = document.getElementById(canvasId).getContext('2d');
             if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
             chartInstances[canvasId] = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    datasets: [{
-                        label: label,
-                        data: chartData,
-                        fill: true,
-                        backgroundColor: 'rgba(251, 146, 60, 0.2)',
-                        borderColor: '#f97316',
-                        tension: 0.1
-                    }]
+                    datasets: [{ label: label, data: chartData, fill: true, backgroundColor: 'rgba(251, 146, 60, 0.2)', borderColor: '#f97316', tension: 0.1 }]
                 },
-                options: {
-                    scales: { x: { type: 'time', time: { unit: 'month' } } },
-                    plugins: { legend: { display: false }, title: { display: true, text: label, font: { size: 16 } } }
-                }
+                options: { scales: { x: { type: 'time', time: { unit: 'month', tooltipFormat: 'dd/MM/yyyy' } } }, plugins: { legend: { display: false }, title: { display: true, text: label, font: { size: 16 } } } }
             });
         }
         
@@ -540,17 +613,14 @@
         }
 
         function renderSlide() {
-            if (filteredData.length === 0) {
-                 stopSlideshow();
-                 return;
-            }
+            if (filteredData.length === 0) { stopSlideshow(); return; }
             const program = filteredData[slideshowIndex];
             const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(link => link);
             const content = document.getElementById('slideshow-content');
             content.innerHTML = `
                 <div class="slideshow-card w-full h-full flex flex-col md:flex-row items-center justify-center gap-8 text-white">
                     <div class="w-full md:w-1/2 h-1/2 md:h-3/4">
-                        <img src="${photoLinks.length > 0 ? `https://drive.google.com/uc?export=view&id=${getDriveFileId(photoLinks[0])}` : 'https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+नहीं'}" 
+                        <img src="${photoLinks.length > 0 ? `https://lh3.googleusercontent.com/d/${getDriveFileId(photoLinks[0])}` : 'https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+नहीं'}" 
                              onerror="this.onerror=null;this.src='https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+उपलब्ध+नहीं';" 
                              alt="${program['कार्यक्रम का नाम']}" class="w-full h-full object-contain rounded-2xl shadow-2xl">
                     </div>
@@ -573,7 +643,6 @@
         function prevSlide() {
             slideshowIndex = (slideshowIndex - 1 + filteredData.length) % filteredData.length;
             renderSlide();
-            // Also reset and pause interval to avoid quick change
             clearInterval(slideshowInterval);
             isSlideshowPaused = true;
             updateSlideshowPauseIcon();
@@ -584,7 +653,7 @@
             if (isSlideshowPaused) {
                 clearInterval(slideshowInterval);
             } else {
-                nextSlide(); // Show next immediately
+                nextSlide();
                 slideshowInterval = setInterval(nextSlide, 7000);
             }
             updateSlideshowPauseIcon();
