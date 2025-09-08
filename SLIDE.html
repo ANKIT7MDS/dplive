@@ -41,13 +41,16 @@
         .view-btn.active {
             @apply bg-orange-500 text-white shadow;
         }
+        
+        .view-btn-group { @apply relative inline-flex rounded-md shadow-sm; }
+        .view-btn-group button { @apply rounded-none; }
+        .view-btn-group button:first-child { @apply rounded-l-md; }
+        .view-btn-group button:last-child { @apply rounded-r-md; }
+
 
         #slideshow-overlay, #ppt-overlay {
             backdrop-filter: blur(10px);
             background-color: rgba(17, 24, 39, 0.95);
-        }
-        #slideshow-container, #ppt-container, #closeSlideshow, #closePpt, .slideshow-nav-btn button {
-            color: #f3f4f6;
         }
         .slideshow-text .font-semibold { color: #f97316; text-shadow: 0 1px 5px rgba(0,0,0,0.4); }
         .slideshow-text h2 { color: #ffffff; text-shadow: 0 2px 10px rgba(0,0,0,0.5);}
@@ -73,6 +76,12 @@
         ::-webkit-scrollbar-thumb:hover { background: #f97316; }
         
         .download-chart-btn { @apply px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded hover:bg-gray-200; }
+
+        /* TV View 2 (Grid) Styles */
+        .tv2-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+        .tv2-grid-item { position: relative; overflow: hidden; border-radius: 0.5rem; transition: transform 0.3s ease; }
+        .tv2-grid-item img { width: 100%; height: 100%; object-fit: cover; }
+        .tv2-grid-item.highlight { transform: scale(1.05); box-shadow: 0 0 15px 5px #f97316; z-index: 10; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -81,12 +90,17 @@
         <header class="bg-white rounded-2xl shadow-lg p-6 mb-8 border-t-4 border-orange-500">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <h1 class="text-3xl md:text-4xl font-bold text-gray-800 hindi-title">जिला अध्यक्ष प्रवास कार्यक्रम</h1>
-                <div class="flex items-center flex-wrap justify-center gap-2 mt-4 md:mt-0" id="view-mode-controls">
-                    <p class="text-sm font-semibold text-gray-600 mr-2">देखें:</p>
-                    <button data-view="card" class="view-btn active">कार्ड व्यू</button>
-                    <button data-view="grid" class="view-btn">ग्रिड व्यू</button>
-                    <button data-view="tv" class="view-btn">टीवी व्यू</button>
-                    <button data-view="ppt" class="view-btn">PPT व्यू</button>
+                <div class="flex items-center flex-wrap justify-center gap-4 mt-4 md:mt-0" id="view-mode-controls">
+                    <div class="view-btn-group">
+                        <button data-view="card" class="view-btn active">कार्ड</button>
+                        <button data-view="grid" class="view-btn">ग्रिड</button>
+                        <button data-view="ppt" class="view-btn">PPT</button>
+                    </div>
+                     <div class="view-btn-group">
+                        <button data-view="tv1" class="view-btn">टीवी 1</button>
+                        <button data-view="tv2" class="view-btn">टीवी 2</button>
+                        <button data-view="tv3" class="view-btn">टीवी 3</button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -202,6 +216,8 @@
         let currentCardIndex = 0;
         const CARDS_PER_PAGE = 18;
         let observer;
+        let photoCycleInterval;
+
 
         const $ = (selector) => document.querySelector(selector);
         
@@ -268,14 +284,14 @@
             const programGrid = $('#program-grid');
             const compactGrid = $('#compact-grid');
 
-            if (view === 'card' || view === 'grid') {
+            if (view.startsWith('tv')) {
+                startSlideshow(view);
+            } else if (view === 'ppt') {
+                startPptView();
+            } else {
                 programGrid.classList.toggle('hidden', view !== 'card');
                 compactGrid.classList.toggle('hidden', view !== 'grid');
                 resetAndRenderCards();
-            } else if (view === 'tv') {
-                startSlideshow();
-            } else if (view === 'ppt') {
-                startPptView();
             }
         }
 
@@ -507,7 +523,8 @@
         }
         
         // --- TV View (Slideshow) ---
-        function startSlideshow() {
+        function startSlideshow(viewType) {
+            currentView = viewType;
             const overlay = $('#slideshow-overlay');
             if (!overlay) return;
             overlay.classList.remove('hidden');
@@ -521,7 +538,7 @@
                 }
                 overlay.innerHTML = `
                     <span id="closeSlideshow" class="absolute top-4 right-6 text-white text-5xl font-bold cursor-pointer transition-transform hover:scale-110 z-20">&times;</span>
-                    <div id="slideshow-container" class="w-full h-full flex flex-col md:flex-row items-center justify-center gap-8 p-4 md:p-12"></div>
+                    <div id="slideshow-container" class="w-full h-full"></div>
                     <div class="slideshow-nav-btn absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20">
                         <button id="slideshow-prev" class="text-white text-4xl p-2 rounded-full bg-black/30 hover:bg-black/50 transition-all">&#10094;</button>
                         <button id="slideshow-pause-play" class="text-white text-3xl p-3 rounded-full bg-black/30 hover:bg-black/50 transition-all">
@@ -561,43 +578,110 @@
             slideshowData = Array.from(programMap.values()).filter(p => p.photos.length > 0);
         }
 
-        function stopSlideshow() { $('#slideshow-overlay')?.classList.add('hidden'); clearInterval(slideshowInterval); }
+        function stopSlideshow() { 
+            $('#slideshow-overlay')?.classList.add('hidden'); 
+            clearInterval(slideshowInterval);
+            clearInterval(photoCycleInterval);
+        }
         
         function renderSlide() {
-            const program = slideshowData[slideshowProgramIndex];
             const container = $('#slideshow-container');
             if (!container) return;
+            if (photoCycleInterval) clearInterval(photoCycleInterval);
             
+            const program = slideshowData[slideshowProgramIndex];
+
+            switch(currentView) {
+                case 'tv1':
+                    renderTv1(program, container);
+                    break;
+                case 'tv2':
+                    renderTv2(program, container);
+                    break;
+                case 'tv3':
+                    renderTv3(program, container);
+                    break;
+            }
+        }
+
+        // TV View 1: Cinematic
+        function renderTv1(program, container) {
+            slideshowPhotoIndex = 0; // Reset photo index for new program
             container.innerHTML = `
-                <div class="w-full md:w-1/2 text-center md:text-left slideshow-text transition-base p-8">
-                    <p class="text-3xl lg:text-4xl font-semibold">${program['कार्यक्रम का प्रकार']}</p>
-                    <h2 class="text-6xl lg:text-8xl font-bold my-6 leading-tight hindi-title">${program['कार्यक्रम का नाम']}</h2>
-                    <p class="text-2xl lg:text-3xl mt-4"><strong>मंडल:</strong> ${program['मंडल का नाम']}</p>
-                    <p class="text-2xl lg:text-3xl"><strong>दिनांक:</strong> ${program['कार्यक्रम दिनांक']}</p>
-                </div>
-                <div class="relative w-full md:w-1/2 h-3/5 md:h-full transition-base flex flex-col gap-4">
-                    <div id="main-photo-container" class="flex-grow bg-black/20 rounded-lg flex items-center justify-center p-2 relative">
-                         <p class="absolute top-2 right-2 text-sm bg-black/50 px-2 py-1 rounded-full">${slideshowPhotoIndex + 1} / ${program.photos.length}</p>
-                        <img id="slideshow-main-image" src="https://lh3.googleusercontent.com/d/${program.photos[slideshowPhotoIndex]}" class="max-w-full max-h-full object-contain rounded">
+                <div class="w-full h-full flex flex-col md:flex-row items-center justify-center gap-8 p-4 md:p-12">
+                    <div class="w-full md:w-1/2 text-center md:text-left slideshow-text transition-base p-8">
+                        <p class="text-3xl lg:text-4xl font-semibold">${program['कार्यक्रम का प्रकार']}</p>
+                        <h2 class="text-6xl lg:text-8xl font-bold my-6 leading-tight hindi-title">${program['कार्यक्रम का नाम']}</h2>
+                        <p class="text-2xl lg:text-3xl mt-4"><strong>मंडल:</strong> ${program['मंडल का नाम']}</p>
+                        <p class="text-2xl lg:text-3xl"><strong>दिनांक:</strong> ${program['कार्यक्रम दिनांक']}</p>
                     </div>
-                    <div id="slideshow-thumbnail-strip" class="flex-shrink-0 h-20 flex items-center justify-center gap-2 overflow-x-auto">
-                        ${program.photos.map((photoId, index) => `
-                            <img src="https://drive.google.com/thumbnail?id=${photoId}" 
-                                 class="h-16 w-16 object-cover rounded-md cursor-pointer border-2 ${index === slideshowPhotoIndex ? 'border-orange-500' : 'border-transparent'}"
-                                 data-photo-index="${index}">
+                    <div class="relative w-full md:w-1/2 h-3/5 md:h-full transition-base flex flex-col gap-4">
+                        <div id="main-photo-container" class="flex-grow bg-black/20 rounded-lg flex items-center justify-center p-2 relative">
+                            <p class="absolute top-2 right-2 text-sm bg-black/50 px-2 py-1 rounded-full">${slideshowPhotoIndex + 1} / ${program.photos.length}</p>
+                            <img id="slideshow-main-image" src="https://lh3.googleusercontent.com/d/${program.photos[slideshowPhotoIndex]}" class="max-w-full max-h-full object-contain rounded">
+                        </div>
+                        <div id="slideshow-thumbnail-strip" class="flex-shrink-0 h-20 flex items-center justify-center gap-2 overflow-x-auto">
+                            ${program.photos.map((photoId, index) => `<img src="https://drive.google.com/thumbnail?id=${photoId}" class="h-16 w-16 object-cover rounded-md cursor-pointer border-2 ${index === 0 ? 'border-orange-500' : 'border-transparent'}">`).join('')}
+                        </div>
+                    </div>
+                </div>`;
+            
+            photoCycleInterval = setInterval(() => {
+                slideshowPhotoIndex = (slideshowPhotoIndex + 1) % program.photos.length;
+                changePhoto(slideshowPhotoIndex, true);
+            }, 3000); // Cycle photo every 3 seconds
+        }
+
+        // TV View 2: Dynamic Grid
+        function renderTv2(program, container) {
+            container.innerHTML = `
+                <div class="w-full h-full flex flex-col items-center justify-center p-4 transition-base">
+                    <h2 class="text-5xl font-bold mb-6 hindi-title text-center slideshow-text">${program['कार्यक्रम का नाम']}</h2>
+                    <div class="w-full flex-grow tv2-grid">
+                        ${program.photos.map(photoId => `
+                            <div class="tv2-grid-item">
+                                <img src="https://lh3.googleusercontent.com/d/${photoId}">
+                            </div>
                         `).join('')}
                     </div>
                 </div>`;
             
-            $('#slideshow-thumbnail-strip')?.addEventListener('click', e => {
-                if(e.target.tagName === 'IMG') {
-                    const newPhotoIndex = parseInt(e.target.dataset.photoIndex);
-                    changePhoto(newPhotoIndex, false);
-                }
-            });
+            let highlightIndex = 0;
+            const items = document.querySelectorAll('.tv2-grid-item');
+            if (items.length > 0) {
+                 photoCycleInterval = setInterval(() => {
+                    items.forEach(item => item.classList.remove('highlight'));
+                    items[highlightIndex].classList.add('highlight');
+                    highlightIndex = (highlightIndex + 1) % items.length;
+                }, 2000);
+            }
+        }
+        
+        // TV View 3: Info Panel
+        function renderTv3(program, container) {
+            slideshowPhotoIndex = 0;
+            container.innerHTML = `
+                <div class="w-full h-full relative flex items-center justify-center transition-base">
+                    <img src="https://lh3.googleusercontent.com/d/${program.photos[0]}" class="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-40">
+                    <div class="relative w-full max-w-6xl h-4/5 bg-black/30 backdrop-blur-sm rounded-2xl flex flex-col md:flex-row p-4 gap-4">
+                         <div class="w-full md:w-2/5 h-1/2 md:h-full text-white slideshow-text p-6 flex flex-col justify-center">
+                            <p class="text-2xl font-semibold">${program['कार्यक्रम का प्रकार']}</p>
+                            <h2 class="text-5xl font-bold my-4 hindi-title">${program['कार्यक्रम का नाम']}</h2>
+                            <p class="text-xl mt-2"><strong>मंडल:</strong> ${program['मंडल का नाम']}</p>
+                            <p class="text-xl"><strong>दिनांक:</strong> ${program['कार्यक्रम दिनांक']}</p>
+                        </div>
+                        <div id="main-photo-container" class="w-full md:w-3/5 h-1/2 md:h-full rounded-lg flex items-center justify-center p-2 relative">
+                            <img id="slideshow-main-image" src="https://lh3.googleusercontent.com/d/${program.photos[0]}" class="max-w-full max-h-full object-contain rounded">
+                        </div>
+                    </div>
+                </div>`;
+             photoCycleInterval = setInterval(() => {
+                slideshowPhotoIndex = (slideshowPhotoIndex + 1) % program.photos.length;
+                changePhoto(slideshowPhotoIndex, true);
+            }, 3000);
         }
 
-        function changePhoto(newIndex, isAuto = true) {
+        function changePhoto(newIndex) {
             slideshowPhotoIndex = newIndex;
             const program = slideshowData[slideshowProgramIndex];
             const newPhotoId = program.photos[slideshowPhotoIndex];
@@ -616,45 +700,30 @@
             document.querySelectorAll('#slideshow-thumbnail-strip img').forEach((img, idx) => {
                 img.classList.toggle('border-orange-500', idx === slideshowPhotoIndex);
             });
-
-            if (!isAuto) {
-                isSlideshowPaused = true;
-                updateSlideshowPauseIcon();
-                clearInterval(slideshowInterval);
-            }
         }
         
         function nextSlide() { 
             if (isSlideshowPaused) return;
-            const currentProgram = slideshowData[slideshowProgramIndex];
-            if (slideshowPhotoIndex < currentProgram.photos.length - 1) {
-                changePhoto(slideshowPhotoIndex + 1);
-            } else {
-                skipToNextProgram(true);
-            }
+            skipToNextProgram(true);
         }
         function prevSlide() { 
-            if (slideshowPhotoIndex > 0) {
-                changePhoto(slideshowPhotoIndex - 1, false);
-            } else {
-                slideshowProgramIndex = (slideshowProgramIndex - 1 + slideshowData.length) % slideshowData.length;
-                slideshowPhotoIndex = slideshowData[slideshowProgramIndex].photos.length - 1;
-                renderSlide();
-                changePhoto(slideshowPhotoIndex, false);
-            }
+            slideshowProgramIndex = (slideshowProgramIndex - 1 + slideshowData.length) % slideshowData.length;
+            renderSlide();
+            isSlideshowPaused = true;
+            updateSlideshowPauseIcon();
+            clearInterval(slideshowInterval);
         }
         function skipToNextProgram(isAuto = false) {
             slideshowProgramIndex = (slideshowProgramIndex + 1) % slideshowData.length;
-            slideshowPhotoIndex = 0;
             renderSlide();
             if (!isAuto) {
                 isSlideshowPaused = false;
                 updateSlideshowPauseIcon();
                 clearInterval(slideshowInterval);
-                slideshowInterval = setInterval(nextSlide, 5000);
+                slideshowInterval = setInterval(nextSlide, 8000);
             }
         }
-        function toggleSlideshowPause() { isSlideshowPaused = !isSlideshowPaused; if (isSlideshowPaused) { clearInterval(slideshowInterval); } else { nextSlide(); slideshowInterval = setInterval(nextSlide, 5000); } updateSlideshowPauseIcon(); }
+        function toggleSlideshowPause() { isSlideshowPaused = !isSlideshowPaused; if (isSlideshowPaused) { clearInterval(slideshowInterval); clearInterval(photoCycleInterval); } else { nextSlide(); slideshowInterval = setInterval(nextSlide, 8000); } updateSlideshowPauseIcon(); }
         function updateSlideshowPauseIcon() { $('#pause-icon')?.classList.toggle('hidden', isSlideshowPaused); $('#play-icon')?.classList.toggle('hidden', !isSlideshowPaused); }
 
         // --- PPT View ---
