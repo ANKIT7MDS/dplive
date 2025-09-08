@@ -26,68 +26,70 @@
         h1, h2, h3, .hindi-title {
             font-family: 'Tiro Devanagari Hindi', serif;
         }
-        .orange-theme {
-            --tw-bg-opacity: 1;
-            background-color: rgb(251 146 60 / var(--tw-bg-opacity)); /* orange-400 */
-        }
         .btn-primary {
             @apply inline-flex items-center justify-center px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-75 transition-transform transform hover:scale-105;
         }
-        .tab-active {
-            @apply border-orange-500 text-orange-600;
+        .tab-active { @apply border-orange-500 text-orange-600; }
+        .tab-inactive { @apply border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300; }
+        .program-card, .compact-card { transition: all 0.3s ease-in-out; }
+        .modal { transition: opacity 0.3s ease; }
+        .modal-content { transition: transform 0.3s ease; }
+
+        .view-btn {
+            @apply px-3 py-1.5 text-sm font-semibold text-gray-600 bg-gray-100 rounded-md transition-colors hover:bg-gray-200;
         }
-        .tab-inactive {
-            @apply border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300;
+        .view-btn.active {
+            @apply bg-orange-500 text-white shadow;
         }
-        /* Card animations */
-        .program-card {
-            transition: all 0.3s ease-in-out;
-        }
-        /* Modal styles */
-        .modal {
-            transition: opacity 0.3s ease;
-        }
-        .modal-content {
-            transition: transform 0.3s ease;
-        }
-        /* Slideshow styles */
-        #slideshow-overlay {
-            background-color: rgba(0,0,0,0.9);
+
+        #slideshow-overlay, #ppt-overlay {
             backdrop-filter: blur(10px);
+            background-color: rgba(17, 24, 39, 0.95);
         }
-        .slideshow-card {
-             animation: fadeIn 0.8s;
+        #slideshow-container, #ppt-container, #closeSlideshow, #closePpt, .slideshow-nav-btn button {
+            color: #f3f4f6;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.98); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        .slideshow-text .font-semibold { color: #f97316; text-shadow: 0 1px 5px rgba(0,0,0,0.4); }
+        .slideshow-text h2 { color: #ffffff; text-shadow: 0 2px 10px rgba(0,0,0,0.5);}
+        .slideshow-text p:not(.font-semibold) { color: #d1d5db; text-shadow: 0 1px 5px rgba(0,0,0,0.4); }
+        .slideshow-text p strong { color: #f9fafb; }
+        #slideshow-main-image { transition: opacity 0.4s ease-in-out; }
+
+        .ppt-details-grid { @apply grid grid-cols-2 gap-x-6 gap-y-3 text-lg; }
+        .ppt-details-grid dt { @apply font-semibold text-gray-400; }
+        .ppt-details-grid dd { @apply text-white; }
+        
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+        details[open] summary .arrow { transform: rotate(90deg); }
+        .arrow { transition: transform 0.2s; }
+
+        .transition-base { animation-duration: 0.7s; animation-fill-mode: both; animation-name: fadeIn; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px;}
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #fb923c; border-radius: 10px;}
         ::-webkit-scrollbar-thumb:hover { background: #f97316; }
+        
+        .download-chart-btn { @apply px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded hover:bg-gray-200; }
     </style>
 </head>
 <body class="bg-gray-50">
 
-    <!-- Main Container -->
     <div class="container mx-auto p-4 md:p-8">
-
-        <!-- Header -->
         <header class="bg-white rounded-2xl shadow-lg p-6 mb-8 border-t-4 border-orange-500">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <h1 class="text-3xl md:text-4xl font-bold text-gray-800 hindi-title">जिला अध्यक्ष प्रवास कार्यक्रम</h1>
-                <div class="flex items-center space-x-3 mt-4 md:mt-0">
-                    <button id="slideshowBtn" class="btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm2 0v8h12V6H4zm1-3a1 1 0 00-1 1v1h14V5a1 1 0 00-1-1H5z"/></svg>
-                        स्लाइड शो
-                    </button>
+                <div class="flex items-center flex-wrap justify-center gap-2 mt-4 md:mt-0" id="view-mode-controls">
+                    <p class="text-sm font-semibold text-gray-600 mr-2">देखें:</p>
+                    <button data-view="card" class="view-btn active">कार्ड व्यू</button>
+                    <button data-view="grid" class="view-btn">ग्रिड व्यू</button>
+                    <button data-view="tv" class="view-btn">टीवी व्यू</button>
+                    <button data-view="ppt" class="view-btn">PPT व्यू</button>
                 </div>
             </div>
         </header>
-
-        <!-- Tabs -->
         <div class="mb-6">
             <div class="border-b border-gray-200">
                 <nav class="-mb-px flex space-x-8" aria-label="Tabs">
@@ -96,49 +98,84 @@
                 </nav>
             </div>
         </div>
-
-        <!-- Main Content -->
         <main id="app-content">
-
-            <!-- Programs View -->
             <div id="program-view">
-                <!-- Filters -->
                 <div class="bg-white p-4 rounded-xl shadow-md mb-6 flex flex-col md:flex-row gap-4 items-center flex-wrap">
                     <h3 class="text-lg font-semibold text-gray-700 hindi-title">फ़िल्टर करें:</h3>
                     <select id="mandalFilter" class="w-full sm:w-auto bg-gray-100 border-2 border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:border-orange-400"></select>
                     <select id="typeFilter" class="w-full sm:w-auto bg-gray-100 border-2 border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:border-orange-400"></select>
+                    <input type="text" id="personFilter" class="w-full sm:w-auto bg-gray-100 border-2 border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:border-orange-400" placeholder="व्यक्ति का नाम खोजें...">
                     <button id="resetFilters" class="w-full sm:w-auto text-sm text-gray-600 hover:text-orange-600 font-medium">रीसेट करें</button>
                     <button id="bulkDownloadBtn" class="btn-primary sm:ml-auto mt-2 sm:mt-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                         बल्क रिपोर्ट डाउनलोड
                     </button>
                 </div>
-
-                <div id="program-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Program cards will be injected here -->
+                <div id="program-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                <div id="compact-grid" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+                <div id="grid-loader" class="text-center py-8 hidden">
+                    <p class="text-gray-600 font-semibold">और कार्यक्रम लोड हो रहे हैं...</p>
                 </div>
-                 <div id="loadingMessage" class="text-center py-10 text-gray-600 font-semibold">
-                    कार्यक्रम लोड हो रहे हैं...
-                </div>
+                <div id="loadingMessage" class="text-center py-10 text-gray-600 font-semibold">कार्यक्रम लोड हो रहे हैं...</div>
             </div>
-
-            <!-- Dashboard View -->
             <div id="dashboard-view" class="hidden">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                 <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
                     <div class="bg-white p-6 rounded-2xl shadow-lg text-center"><h3 class="text-4xl font-bold text-orange-500" id="total-programs">0</h3><p class="text-gray-500 mt-1">कुल कार्यक्रम</p></div>
                     <div class="bg-white p-6 rounded-2xl shadow-lg text-center"><h3 class="text-4xl font-bold text-orange-500" id="total-mandals">0</h3><p class="text-gray-500 mt-1">कुल मंडलों में प्रवास</p></div>
                     <div class="bg-white p-6 rounded-2xl shadow-lg text-center"><h3 class="text-4xl font-bold text-orange-500" id="total-attendance">0</h3><p class="text-gray-500 mt-1">कुल उपस्थिति</p></div>
+                    <div class="bg-white p-6 rounded-2xl shadow-lg text-center"><h3 class="text-4xl font-bold text-orange-500" id="avg-attendance">0</h3><p class="text-gray-500 mt-1">औसत उपस्थिति</p></div>
+                    <div class="bg-white p-6 rounded-2xl shadow-lg text-center"><h3 class="text-2xl font-bold text-orange-500" id="most-active-month">-</h3><p class="text-gray-500 mt-1">सबसे सक्रिय महीना</p></div>
+                    <div class="bg-white p-6 rounded-2xl shadow-lg text-center"><h3 class="text-2xl font-bold text-orange-500 truncate" id="top-program-name" title="-">-</h3><p class="text-gray-500 mt-1">सर्वाधिक उपस्थिति</p></div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                    <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-lg"><canvas id="mandalsChart"></canvas></div>
-                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg"><canvas id="typesChart"></canvas></div>
-                    <div class="col-span-1 lg:col-span-5 bg-white p-6 rounded-2xl shadow-lg"><canvas id="timelineChart"></canvas></div>
+                    <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-lg">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800 hindi-title">मंडल अनुसार कार्यक्रम</h3>
+                            <div class="space-x-2" data-chart-controls="mandalsChart"><button class="download-chart-btn" data-format="jpg">JPG</button><button class="download-chart-btn" data-format="pdf">PDF</button></div>
+                        </div>
+                        <canvas id="mandalsChart"></canvas>
+                    </div>
+                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
+                         <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800 hindi-title">कार्यक्रम के प्रकार</h3>
+                            <div class="space-x-2" data-chart-controls="typesChart"><button class="download-chart-btn" data-format="jpg">JPG</button><button class="download-chart-btn" data-format="pdf">PDF</button></div>
+                        </div>
+                        <canvas id="typesChart"></canvas>
+                    </div>
+                    <div class="col-span-1 lg:col-span-5 bg-white p-6 rounded-2xl shadow-lg">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800 hindi-title">मासिक कार्यक्रम गतिविधि</h3>
+                            <div class="space-x-2" data-chart-controls="monthlyChart"><button class="download-chart-btn" data-format="jpg">JPG</button><button class="download-chart-btn" data-format="pdf">PDF</button></div>
+                        </div>
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                    <div class="col-span-1 lg:col-span-5 bg-white p-6 rounded-2xl shadow-lg">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800 hindi-title">समयरेखा पर कार्यक्रम</h3>
+                            <div class="space-x-2" data-chart-controls="timelineChart"><button class="download-chart-btn" data-format="jpg">JPG</button><button class="download-chart-btn" data-format="pdf">PDF</button></div>
+                        </div>
+                        <canvas id="timelineChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4 hindi-title">मंडल अनुसार प्रवास संख्या</h3>
+                        <div id="mandal-count-list" class="space-y-2 max-h-96 overflow-y-auto"></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4 hindi-title">कार्यक्रम प्रकार अनुसार संख्या</h3>
+                        <div id="type-count-list" class="space-y-2 max-h-96 overflow-y-auto"></div>
+                    </div>
+                </div>
+                <div class="mt-8 bg-white p-6 rounded-2xl shadow-lg">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 hindi-title">मंडल अनुसार प्रवास विवरण</h3>
+                    <div id="mandal-detail-list" class="space-y-3 max-h-[40rem] overflow-y-auto"></div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Image Viewer Modal -->
     <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden items-center justify-center p-4 modal">
         <div class="relative bg-white rounded-lg shadow-2xl w-11/12 h-5/6 max-w-6xl p-4 modal-content transform scale-95">
              <span id="closeModal" class="absolute -top-4 -right-4 text-white bg-orange-500 rounded-full h-10 w-10 flex items-center justify-center text-2xl font-bold cursor-pointer transition-transform hover:scale-110">&times;</span>
@@ -146,46 +183,28 @@
                 <div class="relative flex-grow h-full w-full flex items-center justify-center overflow-hidden">
                     <img id="modalImage" class="max-w-full max-h-full object-contain cursor-zoom-in" src="" alt="कार्यक्रम का बड़ा फोटो">
                 </div>
-                <div id="thumbnail-container" class="flex-shrink-0 pt-3 flex justify-center gap-2 overflow-x-auto">
-                    <!-- Thumbnails will be injected here -->
-                </div>
+                <div id="thumbnail-container" class="flex-shrink-0 pt-3 flex justify-center gap-2 overflow-x-auto"></div>
             </div>
         </div>
     </div>
     
-    <!-- Slideshow Overlay -->
-    <div id="slideshow-overlay" class="fixed inset-0 z-50 hidden items-center justify-center p-8">
-        <span id="closeSlideshow" class="absolute top-6 right-8 text-white text-5xl font-bold cursor-pointer transition-transform hover:scale-110">&times;</span>
-        <div id="slideshow-content" class="w-full h-full">
-            <!-- Slideshow card will be injected here -->
-        </div>
-        <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-4">
-             <button id="slideshow-prev" class="text-white text-4xl p-2 rounded-full bg-black/30 hover:bg-black/50 transition-all">&#10094;</button>
-             <button id="slideshow-pause-play" class="text-white text-3xl p-3 rounded-full bg-black/30 hover:bg-black/50 transition-all">
-                <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-             </button>
-             <button id="slideshow-next" class="text-white text-4xl p-2 rounded-full bg-black/30 hover:bg-black/50 transition-all">&#10095;</button>
-        </div>
-    </div>
+    <div id="slideshow-overlay" class="fixed inset-0 z-50 hidden items-center justify-center p-4 md:p-8"></div>
+    <div id="ppt-overlay" class="fixed inset-0 z-50 hidden items-center justify-center p-4 md:p-8"></div>
 
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4o78Xk4MGw48WSeBe5pmHyqWaJl3lPz18LcA0QCPZmpiNNmkHbJBJS_iX1s63JvhqbOFCrQEMRNeE/pub?output=csv';
-        let programData = [];
-        let filteredData = [];
-        let slideshowData = [];
+        let programData = [], filteredData = [], slideshowData = [];
+        let slideshowInterval, slideshowProgramIndex = 0, slideshowPhotoIndex = 0, isSlideshowPaused = false;
+        let pptProgramIndex = 0;
         let chartInstances = {};
-        let slideshowInterval;
-        let slideshowIndex = 0;
-        let isSlideshowPaused = false;
-
-        // DOM Elements
-        const loadingMessage = document.getElementById('loadingMessage');
-        const programGrid = document.getElementById('program-grid');
-        const mandalFilter = document.getElementById('mandalFilter');
-        const typeFilter = document.getElementById('typeFilter');
         
-        // Initializer
+        let currentView = 'card';
+        let currentCardIndex = 0;
+        const CARDS_PER_PAGE = 18;
+        let observer;
+
+        const $ = (selector) => document.querySelector(selector);
+        
         document.addEventListener('DOMContentLoaded', () => {
             initializeTabs();
             loadData();
@@ -193,47 +212,85 @@
         });
 
         function initializeTabs() {
-            const tabs = document.querySelectorAll('[id^="tab-"]');
-            tabs.forEach(tab => {
+            document.querySelectorAll('[id^="tab-"]').forEach(tab => {
                 tab.addEventListener('click', () => {
                     const viewId = tab.id.replace('tab-', '') + '-view';
                     document.querySelectorAll('[id$="-view"]').forEach(view => view.classList.add('hidden'));
-                    document.getElementById(viewId).classList.remove('hidden');
-                    tabs.forEach(t => t.classList.replace('tab-active', 'tab-inactive'));
+                    const viewEl = $(`#${viewId}`);
+                    if(viewEl) viewEl.classList.remove('hidden');
+                    document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.replace('tab-active', 'tab-inactive'));
                     tab.classList.replace('tab-inactive', 'tab-active');
                 });
             });
         }
-        
+
         function initializeEventListeners() {
-             document.getElementById('resetFilters').addEventListener('click', () => {
-                mandalFilter.selectedIndex = 0;
-                typeFilter.selectedIndex = 0;
+            $('#resetFilters')?.addEventListener('click', () => {
+                $('#mandalFilter').selectedIndex = 0;
+                $('#typeFilter').selectedIndex = 0;
+                $('#personFilter').value = '';
                 applyFilters();
             });
-            document.getElementById('bulkDownloadBtn').addEventListener('click', downloadBulkPdf);
-            mandalFilter.addEventListener('change', applyFilters);
-            typeFilter.addEventListener('change', applyFilters);
+            $('#bulkDownloadBtn')?.addEventListener('click', downloadBulkPdf);
+            $('#mandalFilter')?.addEventListener('change', applyFilters);
+            $('#typeFilter')?.addEventListener('change', applyFilters);
+            $('#personFilter')?.addEventListener('input', applyFilters);
             
-            // Modals
-            document.getElementById('closeModal').addEventListener('click', closeModal);
-            document.getElementById('imageModal').addEventListener('click', (e) => {
-                if(e.target.id === 'imageModal') closeModal();
-            });
-            document.getElementById('modalImage').addEventListener('click', (e) => {
-                e.target.classList.toggle('cursor-zoom-in');
-                e.target.classList.toggle('cursor-zoom-out');
-                e.target.classList.toggle('scale-150');
+            $('#closeModal')?.addEventListener('click', closeModal);
+            $('#imageModal')?.addEventListener('click', (e) => e.target.id === 'imageModal' && closeModal());
+            $('#modalImage')?.addEventListener('click', (e) => e.target.classList.toggle('scale-150'));
+            
+            $('#view-mode-controls')?.addEventListener('click', (e) => {
+                if(e.target.tagName === 'BUTTON') {
+                    const view = e.target.dataset.view;
+                    setActiveView(view);
+                }
             });
 
-            // Slideshow
-            document.getElementById('slideshowBtn').addEventListener('click', startSlideshow);
-            document.getElementById('closeSlideshow').addEventListener('click', stopSlideshow);
-            document.getElementById('slideshow-next').addEventListener('click', nextSlide);
-            document.getElementById('slideshow-prev').addEventListener('click', prevSlide);
-            document.getElementById('slideshow-pause-play').addEventListener('click', toggleSlideshowPause);
+            document.querySelectorAll('[data-chart-controls]').forEach(controlGroup => {
+                const chartId = controlGroup.dataset.chartControls;
+                controlGroup.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        downloadChart(chartId, e.target.dataset.format);
+                    }
+                });
+            });
+
+            setupIntersectionObserver();
         }
 
+        function setActiveView(view) {
+            currentView = view;
+            document.querySelectorAll('#view-mode-controls .view-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === view);
+            });
+
+            const programGrid = $('#program-grid');
+            const compactGrid = $('#compact-grid');
+
+            if (view === 'card' || view === 'grid') {
+                programGrid.classList.toggle('hidden', view !== 'card');
+                compactGrid.classList.toggle('hidden', view !== 'grid');
+                resetAndRenderCards();
+            } else if (view === 'tv') {
+                startSlideshow();
+            } else if (view === 'ppt') {
+                startPptView();
+            }
+        }
+
+        function setupIntersectionObserver() {
+            const loader = $('#grid-loader');
+            if (!loader) return;
+            const options = { root: null, rootMargin: '0px', threshold: 0.1 };
+            observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) renderMoreCards();
+                });
+            }, options);
+            observer.observe(loader);
+        }
+        
         async function loadData() {
             try {
                 const response = await fetch(CSV_URL);
@@ -241,47 +298,80 @@
                 programData = robustParseCsv(csvText);
                 filteredData = [...programData];
                 
+                const loadingMessage = $('#loadingMessage');
                 if (programData.length > 0) {
-                    loadingMessage.style.display = 'none';
-                    renderProgramCards();
+                    if(loadingMessage) loadingMessage.style.display = 'none';
+                    resetAndRenderCards();
                     setupFilters();
                     processAndRenderDashboard();
-                    generateSlideshowData(); // Generate initial slideshow data
                 } else {
-                    loadingMessage.innerText = 'कोई कार्यक्रम डेटा नहीं मिला।';
+                    if(loadingMessage) loadingMessage.innerText = 'कोई कार्यक्रम डेटा नहीं मिला।';
                 }
             } catch (error) {
                 console.error("Error loading data:", error);
-                loadingMessage.innerText = 'डेटा लोड करने में त्रुटि हुई।';
+                const loadingMessage = $('#loadingMessage');
+                if(loadingMessage) loadingMessage.innerText = 'डेटा लोड करने में त्रुटि हुई।';
             }
         }
-        
+
         function robustParseCsv(csvText) {
-            const lines = csvText.split(/\r\n|\n/);
+            const lines = csvText.split(/\r\n|\n/).filter(line => line.trim() !== '');
             if (lines.length < 2) return [];
 
-            // Sanitize headers
-            const rawHeaders = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            const headers = rawHeaders.map((h, index) => {
-                let cleanHeader = h.trim().replace(/^"|"$/g, '');
-                if (index === 0) {
-                    cleanHeader = cleanHeader.replace(/^\uFEFF/, ''); // Remove BOM
+            const parseCsvLine = (line) => {
+                const fields = [];
+                let currentField = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        if (inQuotes && line[i + 1] === '"') {
+                            currentField += '"';
+                            i++; 
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        fields.push(currentField.trim());
+                        currentField = '';
+                    } else {
+                        currentField += char;
+                    }
                 }
+                fields.push(currentField.trim());
+                return fields;
+            };
+
+            const rawHeaders = parseCsvLine(lines[0]);
+            const headers = rawHeaders.map((h, i) => {
+                let cleanHeader = h.replace(/^"|"$/g, '');
+                if (i === 0) cleanHeader = cleanHeader.replace(/^\uFEFF/, '');
                 return cleanHeader;
             });
             
             const data = [];
             for (let i = 1; i < lines.length; i++) {
-                if (!lines[i].trim()) continue;
-                const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                let fullLine = lines[i];
+                let j = i;
+                let quoteCount = (fullLine.match(/"/g) || []).length;
+                if(quoteCount % 2 !== 0 && j < lines.length -1) {
+                    do {
+                       j++;
+                       fullLine += '\n' + lines[j];
+                       quoteCount += (lines[j]?.match(/"/g) || []).length;
+                    } while(j < lines.length - 1 && quoteCount % 2 !== 0)
+                }
+                i = j;
+
+                const values = parseCsvLine(fullLine);
                 if (values.length === headers.length) {
                     const obj = {};
                     headers.forEach((header, index) => {
-                        obj[header] = (values[index] || '').trim().replace(/^"|"$/g, '');
+                        obj[header] = values[index].replace(/^"|"$/g, '').replace(/""/g, '"');
                     });
                     data.push(obj);
                 } else {
-                    console.warn(`Skipping row due to column mismatch:`, lines[i]);
+                     console.warn(`Skipping row due to column mismatch. Expected ${headers.length}, got ${values.length}. Row: ${lines[i]}`);
                 }
             }
             return data;
@@ -290,17 +380,60 @@
         function getDriveFileId(url) {
             if (!url) return null;
             const match = url.match(/id=([a-zA-Z0-9_-]+)/);
-            return (match && match[1]) ? match[1] : null;
+            return match?.[1] || null;
+        }
+        
+        function applyFilters() {
+            const selectedMandal = $('#mandalFilter').value;
+            const selectedType = $('#typeFilter').value;
+            const searchTerm = $('#personFilter').value.toLowerCase();
+            filteredData = programData.filter(p => 
+                (!selectedMandal || p['मंडल का नाम'] === selectedMandal) &&
+                (!selectedType || p['कार्यक्रम का प्रकार'] === selectedType) &&
+                (!searchTerm || (p['फोटो में मौजूद लोग'] && p['फोटो में मौजूद लोग'].toLowerCase().includes(searchTerm)))
+            );
+            resetAndRenderCards();
         }
 
-        function renderProgramCards() {
-            programGrid.innerHTML = '';
-            if (filteredData.length === 0) {
-                programGrid.innerHTML = `<p class="col-span-full text-center text-gray-500 py-8">इस फ़िल्टर के लिए कोई परिणाम नहीं मिला।</p>`;
+        function resetAndRenderCards() {
+            currentCardIndex = 0;
+            $('#program-grid').innerHTML = '';
+            $('#compact-grid').innerHTML = '';
+            if(observer) observer.disconnect();
+            setupIntersectionObserver();
+            renderMoreCards();
+        }
+
+        function renderMoreCards() {
+            const loader = $('#grid-loader');
+            if (!loader) return;
+            
+            const grid = currentView === 'card' ? $('#program-grid') : $('#compact-grid');
+            if(!grid) return;
+
+            const end = currentCardIndex + CARDS_PER_PAGE;
+            const cardsToRender = filteredData.slice(currentCardIndex, end);
+
+            if (cardsToRender.length === 0 && currentCardIndex === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-gray-500 py-8">इस फ़िल्टर के लिए कोई परिणाम नहीं मिला।</p>`;
+                loader.classList.add('hidden');
                 return;
             }
-            filteredData.forEach((program, index) => {
-                const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(link => link);
+
+            if (currentView === 'card') {
+                renderDetailedCards(grid, cardsToRender);
+            } else {
+                renderCompactCards(grid, cardsToRender);
+            }
+
+            currentCardIndex = end;
+            loader.classList.toggle('hidden', currentCardIndex >= filteredData.length);
+        }
+
+        function renderDetailedCards(grid, cards) {
+            cards.forEach((program, relativeIndex) => {
+                const absoluteIndex = currentCardIndex + relativeIndex;
+                const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(Boolean);
                 const card = document.createElement('div');
                 card.className = 'program-card bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-1';
                 card.innerHTML = `
@@ -316,384 +449,454 @@
                         <p class="text-sm text-gray-500 mt-2"><strong>स्थान:</strong> ${program['मंडल का नाम']}, ${program['कार्यक्रम स्थान']}</p>
                         <p class="text-sm text-gray-500"><strong>दिनांक:</strong> ${program['कार्यक्रम दिनांक']}</p>
                         <div class="mt-4 flex justify-between items-center">
-                            <button class="view-photos-btn text-sm font-semibold text-orange-600 hover:text-orange-800" data-index="${index}">फोटो देखें</button>
-                            <button class="download-pdf-btn btn-primary !py-1 !px-3 !text-sm" data-index="${index}">PDF</button>
+                            <button class="view-photos-btn text-sm font-semibold text-orange-600 hover:text-orange-800" data-index="${absoluteIndex}">फोटो देखें</button>
+                            <button class="download-pdf-btn btn-primary !py-1 !px-3 !text-sm" data-index="${absoluteIndex}">PDF</button>
                         </div>
-                    </div>
-                `;
-                programGrid.appendChild(card);
+                    </div>`;
+                grid.appendChild(card);
             });
-            
-            programGrid.querySelectorAll('.view-photos-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const programIndex = parseInt(e.currentTarget.dataset.index);
-                    const program = filteredData[programIndex];
-                    const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(link => link);
-                    openModal(photoLinks);
+            attachCardListeners(grid);
+        }
+        
+        function renderCompactCards(grid, cards) {
+             cards.forEach((program, relativeIndex) => {
+                const absoluteIndex = currentCardIndex + relativeIndex;
+                const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(Boolean);
+                const card = document.createElement('div');
+                card.className = 'compact-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl hover:-translate-y-0.5 cursor-pointer';
+                card.dataset.index = absoluteIndex;
+                card.innerHTML = `
+                    <img src="${photoLinks.length > 0 ? `https://drive.google.com/thumbnail?id=${getDriveFileId(photoLinks[0])}` : 'https://placehold.co/400/fdba74/a16207?text=फोटो+नहीं'}"
+                         onerror="this.onerror=null;this.src='https://placehold.co/400/fdba74/a16207?text=फोटो+उपलब्ध+नहीं';" 
+                         alt="${program['कार्यक्रम का नाम']}" class="w-full h-32 object-cover">
+                    <div class="p-2">
+                        <h3 class="text-sm font-semibold text-gray-800 truncate hindi-title">${program['कार्यक्रम का नाम']}</h3>
+                        <p class="text-xs text-gray-500">${program['मंडल का नाम']}</p>
+                    </div>`;
+                grid.appendChild(card);
+             });
+             grid.querySelectorAll('.compact-card:not([data-listener-attached])').forEach(card => {
+                card.setAttribute('data-listener-attached', 'true');
+                card.addEventListener('click', e => {
+                    const program = filteredData[parseInt(e.currentTarget.dataset.index)];
+                    const photos = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(Boolean);
+                    openModal(photos);
+                });
+             });
+        }
+        
+        function attachCardListeners(grid) {
+             grid.querySelectorAll('.view-photos-btn:not([data-listener-attached])').forEach(btn => {
+                btn.setAttribute('data-listener-attached', 'true');
+                btn.addEventListener('click', e => {
+                    const program = filteredData[parseInt(e.currentTarget.dataset.index)];
+                    openModal((program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(Boolean));
                 });
             });
-             programGrid.querySelectorAll('.download-pdf-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const programIndex = parseInt(e.currentTarget.dataset.index);
-                    downloadPdf(filteredData[programIndex]);
-                });
+            grid.querySelectorAll('.download-pdf-btn:not([data-listener-attached])').forEach(btn => {
+                btn.setAttribute('data-listener-attached', 'true');
+                btn.addEventListener('click', e => downloadPdf(filteredData[parseInt(e.currentTarget.dataset.index)]));
             });
         }
         
         function setupFilters() {
             const mandals = [...new Set(programData.map(p => p['मंडल का नाम']))].filter(Boolean).sort();
             const types = [...new Set(programData.map(p => p['कार्यक्रम का प्रकार']))].filter(Boolean).sort();
-            
-            mandalFilter.innerHTML = `<option value="">सभी मंडल</option>` + mandals.map(m => `<option value="${m}">${m}</option>`).join('');
-            typeFilter.innerHTML = `<option value="">सभी प्रकार</option>` + types.map(t => `<option value="${t}">${t}</option>`).join('');
+            $('#mandalFilter').innerHTML = `<option value="">सभी मंडल</option>` + mandals.map(m => `<option value="${m}">${m}</option>`).join('');
+            $('#typeFilter').innerHTML = `<option value="">सभी प्रकार</option>` + types.map(t => `<option value="${t}">${t}</option>`).join('');
         }
         
-        function applyFilters() {
-            const selectedMandal = mandalFilter.value;
-            const selectedType = typeFilter.value;
+        // --- TV View (Slideshow) ---
+        function startSlideshow() {
+            const overlay = $('#slideshow-overlay');
+            if (!overlay) return;
+            overlay.classList.remove('hidden');
+            overlay.innerHTML = `<div class="text-white text-2xl font-semibold">स्लाइड शो तैयार हो रहा है...</div>`;
 
-            filteredData = programData.filter(p => {
-                const mandalMatch = !selectedMandal || p['मंडल का नाम'] === selectedMandal;
-                const typeMatch = !selectedType || p['कार्यक्रम का प्रकार'] === selectedType;
-                return mandalMatch && typeMatch;
+            setTimeout(() => {
+                generateSlideshowData();
+                if (slideshowData.length === 0) {
+                    alert('दिखाने के लिए कोई कार्यक्रम नहीं है।');
+                    stopSlideshow(); return;
+                }
+                overlay.innerHTML = `
+                    <span id="closeSlideshow" class="absolute top-4 right-6 text-white text-5xl font-bold cursor-pointer transition-transform hover:scale-110 z-20">&times;</span>
+                    <div id="slideshow-container" class="w-full h-full flex flex-col md:flex-row items-center justify-center gap-8 p-4 md:p-12"></div>
+                    <div class="slideshow-nav-btn absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20">
+                        <button id="slideshow-prev" class="text-white text-4xl p-2 rounded-full bg-black/30 hover:bg-black/50 transition-all">&#10094;</button>
+                        <button id="slideshow-pause-play" class="text-white text-3xl p-3 rounded-full bg-black/30 hover:bg-black/50 transition-all">
+                             <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </button>
+                        <button id="slideshow-next" class="text-white text-4xl p-2 rounded-full bg-black/30 hover:bg-black/50 transition-all">&#10095;</button>
+                        <button id="slideshow-skip" class="text-white text-sm px-3 py-1.5 rounded-full bg-black/30 hover:bg-black/50 transition-all font-semibold">अगला कार्यक्रम</button>
+                    </div>`;
+
+                $('#closeSlideshow')?.addEventListener('click', stopSlideshow);
+                $('#slideshow-next')?.addEventListener('click', nextSlide);
+                $('#slideshow-prev')?.addEventListener('click', prevSlide);
+                $('#slideshow-pause-play')?.addEventListener('click', toggleSlideshowPause);
+                $('#slideshow-skip')?.addEventListener('click', () => skipToNextProgram(false));
+
+                slideshowProgramIndex = 0;
+                slideshowPhotoIndex = 0;
+                isSlideshowPaused = false;
+                updateSlideshowPauseIcon();
+                renderSlide();
+                slideshowInterval = setInterval(nextSlide, 5000);
+            }, 50);
+        }
+        function generateSlideshowData() {
+            slideshowData = [];
+            const programMap = new Map();
+            filteredData.forEach(program => {
+                const programName = program['कार्यक्रम का नाम'];
+                if (!programMap.has(programName)) {
+                    programMap.set(programName, { ...program, photos: [] });
+                }
+                const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(Boolean);
+                const fileIds = photoLinks.map(getDriveFileId).filter(Boolean);
+                programMap.get(programName).photos.push(...fileIds);
             });
-            renderProgramCards();
-            generateSlideshowData(); // Regenerate slideshow data based on filters
+            slideshowData = Array.from(programMap.values()).filter(p => p.photos.length > 0);
         }
 
-        // --- Modal ---
-        function openModal(photoLinks) {
-            const modal = document.getElementById('imageModal');
-            const modalImage = document.getElementById('modalImage');
-            const thumbnailContainer = document.getElementById('thumbnail-container');
+        function stopSlideshow() { $('#slideshow-overlay')?.classList.add('hidden'); clearInterval(slideshowInterval); }
+        
+        function renderSlide() {
+            const program = slideshowData[slideshowProgramIndex];
+            const container = $('#slideshow-container');
+            if (!container) return;
             
-            if (photoLinks.length === 0) return;
+            container.innerHTML = `
+                <div class="w-full md:w-1/2 text-center md:text-left slideshow-text transition-base p-8">
+                    <p class="text-3xl lg:text-4xl font-semibold">${program['कार्यक्रम का प्रकार']}</p>
+                    <h2 class="text-6xl lg:text-8xl font-bold my-6 leading-tight hindi-title">${program['कार्यक्रम का नाम']}</h2>
+                    <p class="text-2xl lg:text-3xl mt-4"><strong>मंडल:</strong> ${program['मंडल का नाम']}</p>
+                    <p class="text-2xl lg:text-3xl"><strong>दिनांक:</strong> ${program['कार्यक्रम दिनांक']}</p>
+                </div>
+                <div class="relative w-full md:w-1/2 h-3/5 md:h-full transition-base flex flex-col gap-4">
+                    <div id="main-photo-container" class="flex-grow bg-black/20 rounded-lg flex items-center justify-center p-2 relative">
+                         <p class="absolute top-2 right-2 text-sm bg-black/50 px-2 py-1 rounded-full">${slideshowPhotoIndex + 1} / ${program.photos.length}</p>
+                        <img id="slideshow-main-image" src="https://lh3.googleusercontent.com/d/${program.photos[slideshowPhotoIndex]}" class="max-w-full max-h-full object-contain rounded">
+                    </div>
+                    <div id="slideshow-thumbnail-strip" class="flex-shrink-0 h-20 flex items-center justify-center gap-2 overflow-x-auto">
+                        ${program.photos.map((photoId, index) => `
+                            <img src="https://drive.google.com/thumbnail?id=${photoId}" 
+                                 class="h-16 w-16 object-cover rounded-md cursor-pointer border-2 ${index === slideshowPhotoIndex ? 'border-orange-500' : 'border-transparent'}"
+                                 data-photo-index="${index}">
+                        `).join('')}
+                    </div>
+                </div>`;
             
-            thumbnailContainer.innerHTML = '';
-            photoLinks.forEach((link, index) => {
-                const fileId = getDriveFileId(link);
-                if (!fileId) return;
-                const thumb = document.createElement('img');
-                thumb.src = `https://drive.google.com/thumbnail?id=${fileId}`;
-                thumb.className = 'h-16 w-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-orange-500';
-                thumb.onclick = () => setActiveThumbnail(index);
-                thumbnailContainer.appendChild(thumb);
+            $('#slideshow-thumbnail-strip')?.addEventListener('click', e => {
+                if(e.target.tagName === 'IMG') {
+                    const newPhotoIndex = parseInt(e.target.dataset.photoIndex);
+                    changePhoto(newPhotoIndex, false);
+                }
             });
+        }
+
+        function changePhoto(newIndex, isAuto = true) {
+            slideshowPhotoIndex = newIndex;
+            const program = slideshowData[slideshowProgramIndex];
+            const newPhotoId = program.photos[slideshowPhotoIndex];
+            const mainImage = $('#slideshow-main-image');
             
-            function setActiveThumbnail(index) {
-                const fileId = getDriveFileId(photoLinks[index]);
-                modalImage.src = `https://lh3.googleusercontent.com/d/${fileId}`;
-                modalImage.onerror = () => { modalImage.src = 'https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+उपलब्ध+नहीं'; };
-                thumbnailContainer.querySelectorAll('img').forEach((img, i) => {
-                    img.classList.toggle('border-orange-500', i === index);
-                });
+            if (mainImage) {
+                mainImage.style.opacity = 0;
+                setTimeout(() => {
+                    mainImage.src = `https://lh3.googleusercontent.com/d/${newPhotoId}`;
+                    mainImage.style.opacity = 1;
+                }, 400);
             }
             
-            setActiveThumbnail(0);
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            setTimeout(() => modal.querySelector('.modal-content').classList.remove('scale-95'), 10);
+            const photoCounter = $('#main-photo-container p');
+            if (photoCounter) photoCounter.textContent = `${slideshowPhotoIndex + 1} / ${program.photos.length}`;
+            document.querySelectorAll('#slideshow-thumbnail-strip img').forEach((img, idx) => {
+                img.classList.toggle('border-orange-500', idx === slideshowPhotoIndex);
+            });
+
+            if (!isAuto) {
+                isSlideshowPaused = true;
+                updateSlideshowPauseIcon();
+                clearInterval(slideshowInterval);
+            }
+        }
+        
+        function nextSlide() { 
+            if (isSlideshowPaused) return;
+            const currentProgram = slideshowData[slideshowProgramIndex];
+            if (slideshowPhotoIndex < currentProgram.photos.length - 1) {
+                changePhoto(slideshowPhotoIndex + 1);
+            } else {
+                skipToNextProgram(true);
+            }
+        }
+        function prevSlide() { 
+            if (slideshowPhotoIndex > 0) {
+                changePhoto(slideshowPhotoIndex - 1, false);
+            } else {
+                slideshowProgramIndex = (slideshowProgramIndex - 1 + slideshowData.length) % slideshowData.length;
+                slideshowPhotoIndex = slideshowData[slideshowProgramIndex].photos.length - 1;
+                renderSlide();
+                changePhoto(slideshowPhotoIndex, false);
+            }
+        }
+        function skipToNextProgram(isAuto = false) {
+            slideshowProgramIndex = (slideshowProgramIndex + 1) % slideshowData.length;
+            slideshowPhotoIndex = 0;
+            renderSlide();
+            if (!isAuto) {
+                isSlideshowPaused = false;
+                updateSlideshowPauseIcon();
+                clearInterval(slideshowInterval);
+                slideshowInterval = setInterval(nextSlide, 5000);
+            }
+        }
+        function toggleSlideshowPause() { isSlideshowPaused = !isSlideshowPaused; if (isSlideshowPaused) { clearInterval(slideshowInterval); } else { nextSlide(); slideshowInterval = setInterval(nextSlide, 5000); } updateSlideshowPauseIcon(); }
+        function updateSlideshowPauseIcon() { $('#pause-icon')?.classList.toggle('hidden', isSlideshowPaused); $('#play-icon')?.classList.toggle('hidden', !isSlideshowPaused); }
+
+        // --- PPT View ---
+        function startPptView() {
+            const overlay = $('#ppt-overlay');
+            if(!overlay || filteredData.length === 0) return;
+            overlay.classList.remove('hidden');
+            pptProgramIndex = 0;
+            renderPptSlide();
+        }
+        function stopPptView() { $('#ppt-overlay')?.classList.add('hidden'); }
+        function renderPptSlide() {
+            const program = filteredData[pptProgramIndex];
+            const overlay = $('#ppt-overlay');
+            const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(Boolean);
+            overlay.innerHTML = `
+                <span id="closePpt" class="absolute top-4 right-6 text-white text-5xl font-bold cursor-pointer transition-transform hover:scale-110 z-20">&times;</span>
+                <div class="w-full h-full max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-8 p-6 bg-gray-900/50 rounded-2xl">
+                    <div class="w-full md:w-1/2 h-1/2 md:h-full bg-black/20 rounded-xl p-2 flex items-center justify-center">
+                         <img src="${photoLinks.length > 0 ? `https://lh3.googleusercontent.com/d/${getDriveFileId(photoLinks[0])}` : 'https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+नहीं'}" class="max-w-full max-h-full object-contain rounded-lg">
+                    </div>
+                    <div class="w-full md:w-1/2 h-1/2 md:h-full text-white flex flex-col justify-center overflow-y-auto">
+                        <p class="text-orange-400 font-semibold">${program['कार्यक्रम का प्रकार']}</p>
+                        <h2 class="text-4xl font-bold my-3 hindi-title">${program['कार्यक्रम का नाम']}</h2>
+                        <dl class="ppt-details-grid my-4">
+                            <dt>दिनांक:</dt><dd>${program['कार्यक्रम दिनांक']}</dd>
+                            <dt>स्थान:</dt><dd>${program['कार्यक्रम स्थान']}</dd>
+                            <dt>मंडल:</dt><dd>${program['मंडल का नाम']}</dd>
+                            <dt>उपस्थिति:</dt><dd>${program['कार्यक्रम में कुल उपस्तिथि']}</dd>
+                            <dt>प्रमुख अतिथि:</dt><dd class="col-span-2">${program['कार्यक्रम में प्रमुख अतिथि , जनप्रतिनिधि']}</dd>
+                        </dl>
+                        <p class="text-gray-300 mt-2">${program['कार्यक्रम से सम्बंधित अन्य जानकारी संषिप्त में']}</p>
+                        <div class="mt-auto pt-4 flex gap-2 overflow-x-auto">
+                            ${photoLinks.map(link => `<img src="https://drive.google.com/thumbnail?id=${getDriveFileId(link)}" class="h-20 w-20 object-cover rounded-md border-2 border-transparent hover:border-orange-500 cursor-pointer" onclick="openModal(['${link}'])">`).join('')}
+                        </div>
+                    </div>
+                </div>
+                 <button id="ppt-prev" class="absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl p-2 rounded-full bg-black/30 hover:bg-black/50 transition-all">&#10094;</button>
+                 <button id="ppt-next" class="absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl p-2 rounded-full bg-black/30 hover:bg-black/50 transition-all">&#10095;</button>
+            `;
+            $('#closePpt').addEventListener('click', stopPptView);
+            $('#ppt-prev').addEventListener('click', () => { pptProgramIndex = (pptProgramIndex - 1 + filteredData.length) % filteredData.length; renderPptSlide(); });
+            $('#ppt-next').addEventListener('click', () => { pptProgramIndex = (pptProgramIndex + 1) % filteredData.length; renderPptSlide(); });
         }
 
-        function closeModal() {
-            const modal = document.getElementById('imageModal');
-            modal.querySelector('.modal-content').classList.add('scale-95');
-            setTimeout(() => modal.classList.add('hidden'), 300);
-            const modalImage = document.getElementById('modalImage');
-            modalImage.classList.remove('cursor-zoom-out', 'scale-150');
-            modalImage.classList.add('cursor-zoom-in');
-        }
-
-        // --- PDF Download ---
+        function openModal(photoLinks) { const modal = $('#imageModal'); const modalImage = $('#modalImage'); const thumbContainer = $('#thumbnail-container'); if (!modal || !modalImage || !thumbContainer || photoLinks.length === 0) return; thumbContainer.innerHTML = ''; photoLinks.forEach((link, index) => { const fileId = getDriveFileId(link); if (!fileId) return; const thumb = document.createElement('img'); thumb.src = `https://drive.google.com/thumbnail?id=${fileId}`; thumb.className = 'h-16 w-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-orange-500'; thumb.onclick = () => setActiveThumbnail(index); thumbContainer.appendChild(thumb); }); function setActiveThumbnail(index) { const fileId = getDriveFileId(photoLinks[index]); modalImage.src = `https://lh3.googleusercontent.com/d/${fileId}`; modalImage.onerror = () => { modalImage.src = 'https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+उपलब्ध+नहीं'; }; thumbContainer.querySelectorAll('img').forEach((img, i) => img.classList.toggle('border-orange-500', i === index)); } setActiveThumbnail(0); modal.classList.remove('hidden'); modal.classList.add('flex'); setTimeout(() => modal.querySelector('.modal-content')?.classList.remove('scale-95'), 10); }
+        function closeModal() { const modal = $('#imageModal'); if(!modal) return; modal.querySelector('.modal-content')?.classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 300); }
+        
         async function imageUrlToDataUrl(url) {
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+                if (!response.ok) return null;
                 const blob = await response.blob();
-                return new Promise((resolve, reject) => {
+                return new Promise(resolve => {
                     const reader = new FileReader();
                     reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = reject;
                     reader.readAsDataURL(blob);
                 });
             } catch (error) {
-                console.error(`Could not convert image ${url} to data URL:`, error);
+                console.error("Error converting image to data URL:", error);
                 return null;
             }
         }
-
+        
         async function downloadPdf(program) {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
-            
-            const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(link => link);
+            const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(l=>l.trim()).filter(Boolean);
             let photoHtml = '';
-
-            if (photoLinks.length > 0 && getDriveFileId(photoLinks[0])) {
-                const imageUrl = `https://drive.google.com/thumbnail?id=${getDriveFileId(photoLinks[0])}`;
-                const dataUrl = await imageUrlToDataUrl(imageUrl);
-                if (dataUrl) {
-                    photoHtml = `<img src="${dataUrl}" style="max-width: 150px; margin-bottom: 15px; border-radius: 8px;" />`;
-                }
+            if (photoLinks.length > 0) {
+                const dataUrl = await imageUrlToDataUrl(`https://drive.google.com/thumbnail?id=${getDriveFileId(photoLinks[0])}`);
+                if(dataUrl) photoHtml = `<img src="${dataUrl}" style="max-width: 150px; border-radius: 8px; margin-bottom: 15px;" />`;
             }
-
             const element = document.createElement('div');
-            element.style.width = '210mm';
-            element.style.padding = '20px';
-            element.style.backgroundColor = 'white';
-            element.innerHTML = `
-                ${photoHtml}
-                <h1 style="font-size: 24px; color: #f97316; border-bottom: 2px solid #fb923c; padding-bottom: 10px; margin-bottom: 20px;">${program['कार्यक्रम का नाम']}</h1>
-                <p><strong>दिनांक:</strong> ${program['कार्यक्रम दिनांक']}</p>
-                <p><strong>स्थान:</strong> ${program['कार्यक्रम स्थान']}</p>
-                <p><strong>मंडल:</strong> ${program['मंडल का नाम']}</p>
-                <p><strong>प्रकार:</strong> ${program['कार्यक्रम का प्रकार']}</p>
-                <p><strong>कुल उपस्थिति:</strong> ${program['कार्यक्रम में कुल उपस्तिथि']}</p>
-                <p><strong>प्रमुख अतिथि:</strong> ${program['कार्यक्रम में प्रमुख अतिथि , जनप्रतिनिधि']}</p>
-                <p style="margin-top: 20px;"><strong>विवरण:</strong> ${program['कार्यक्रम से सम्बंधित अन्य जानकारी संषिप्त में']}</p>
-            `;
+            element.style.cssText = 'width:210mm; padding:20px; background-color:white;';
+            element.innerHTML = `${photoHtml}<h1 style="font-size:22px;color:#f97316;">${program['कार्यक्रम का नाम']}</h1><p><strong>दिनांक:</strong> ${program['कार्यक्रम दिनांक']}</p><p><strong>मंडल:</strong> ${program['मंडल का नाम']}</p><p><strong>विवरण:</strong> ${program['कार्यक्रम से सम्बंधित अन्य जानकारी संषिप्त में']}</p>`;
             document.body.appendChild(element);
-
-            try {
-                const canvas = await html2canvas(element, { scale: 2 });
-                const imgData = canvas.toDataURL('image/png');
-                const imgProps= pdf.getImageProperties(imgData);
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                pdf.save(`${program['कार्यक्रम का नाम']}.pdf`);
-            } catch (error) {
-                console.error("PDF generation error:", error);
-                alert("PDF बनाने में त्रुटि हुई।");
-            } finally {
-                document.body.removeChild(element);
-            }
+            const canvas = await html2canvas(element, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), (canvas.height * pdf.internal.pageSize.getWidth()) / canvas.width);
+            pdf.save(`${program['कार्यक्रम का नाम']}.pdf`);
+            document.body.removeChild(element);
         }
 
         async function downloadBulkPdf() {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF('p', 'mm', 'a4');
             const element = document.createElement('div');
-            
-            let reportHtml = `
-                <div style="font-family: Arial, sans-serif; font-size: 9px; padding: 10mm; width: 190mm;">
-                <h1 style="font-size: 18px; color: #f97316;">प्रवास कार्यक्रम रिपोर्ट</h1>
-                <p><strong>कुल कार्यक्रम:</strong> ${filteredData.length}</p>
-                <p><strong>रिपोर्ट दिनांक:</strong> ${new Date().toLocaleDateString('hi-IN')}</p>
-                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-                    <thead style="background-color: #f2f2f2;">
-                        <tr>
-                            <th style="border: 1px solid #ddd; padding: 4px;">क्र.</th>
-                            <th style="border: 1px solid #ddd; padding: 4px;">कार्यक्रम</th>
-                            <th style="border: 1px solid #ddd; padding: 4px;">मंडल</th>
-                            <th style="border: 1px solid #ddd; padding: 4px;">प्रकार</th>
-                            <th style="border: 1px solid #ddd; padding: 4px;">दिनांक</th>
-                            <th style="border: 1px solid #ddd; padding: 4px;">उपस्थिति</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-            filteredData.forEach((p, index) => {
-                reportHtml += `
-                    <tr>
-                        <td style="border: 1px solid #ddd; padding: 4px;">${index + 1}</td>
-                        <td style="border: 1px solid #ddd; padding: 4px;">${p['कार्यक्रम का नाम']}</td>
-                        <td style="border: 1px solid #ddd; padding: 4px;">${p['मंडल का नाम']}</td>
-                        <td style="border: 1px solid #ddd; padding: 4px;">${p['कार्यक्रम का प्रकार']}</td>
-                        <td style="border: 1px solid #ddd; padding: 4px;">${p['कार्यक्रम दिनांक']}</td>
-                        <td style="border: 1px solid #ddd; padding: 4px;">${p['कार्यक्रम में कुल उपस्तिथि']}</td>
-                    </tr>`;
-            });
+            let reportHtml = `<div style="padding:10mm;width:190mm;font-size:9px;"><h1 style="font-size:18px;color:#f97316;">रिपोर्ट</h1><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f2f2f2;"><th>#</th><th>कार्यक्रम</th><th>मंडल</th><th>दिनांक</th></tr></thead><tbody>`;
+            filteredData.forEach((p, i) => { reportHtml += `<tr><td>${i + 1}</td><td>${p['कार्यक्रम का नाम']}</td><td>${p['मंडल का नाम']}</td><td>${p['कार्यक्रम दिनांक']}</td></tr>`; });
             reportHtml += `</tbody></table></div>`;
-            
             element.innerHTML = reportHtml;
             document.body.appendChild(element);
-
-            await pdf.html(element, {
-                callback: function(doc) {
-                    doc.save('कार्यक्रम_रिपोर्ट.pdf');
-                    document.body.removeChild(element);
-                },
-                x: 0,
-                y: 0,
-                width: 210,
-                windowWidth: element.scrollWidth
-            });
+            await pdf.html(element, { callback: doc => { doc.save('रिपोर्ट.pdf'); document.body.removeChild(element); }, x: 0, y: 0, width: 210, windowWidth: element.scrollWidth });
+        }
+        
+        function downloadChart(canvasId, format = 'jpg') {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const link = document.createElement('a');
+            
+            if (format === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'landscape' });
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save(`${canvasId}.pdf`);
+            } else {
+                link.download = `${canvasId}.jpg`;
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+            }
         }
 
-        // --- Dashboard ---
         function processAndRenderDashboard() {
-            const analytics = { byMandal: {}, byType: {}, byDate: {}, totalAttendance: 0 };
+            const analytics = { byMandal: {}, byType: {}, byDate: {}, byMonth: {}, totalAttendance: 0, topProgram: { name: '-', attendance: 0 }, mandalDetails: {} };
             programData.forEach(p => {
-                if(p['मंडल का नाम']) analytics.byMandal[p['मंडल का नाम']] = (analytics.byMandal[p['मंडल का नाम']] || 0) + 1;
+                const mandalName = p['मंडल का नाम'];
+                if(mandalName) {
+                    analytics.byMandal[mandalName] = (analytics.byMandal[mandalName] || 0) + 1;
+                    if (!analytics.mandalDetails[mandalName]) analytics.mandalDetails[mandalName] = [];
+                    analytics.mandalDetails[mandalName].push({ name: p['कार्यक्रम का नाम'], date: p['कार्यक्रम दिनांक'] });
+                }
                 if(p['कार्यक्रम का प्रकार']) analytics.byType[p['कार्यक्रम का प्रकार']] = (analytics.byType[p['कार्यक्रम का प्रकार']] || 0) + 1;
+                const attendance = parseInt(p['कार्यक्रम में कुल उपस्तिथि']) || 0;
+                analytics.totalAttendance += attendance;
+                if (attendance > analytics.topProgram.attendance) {
+                    analytics.topProgram = { name: p['कार्यक्रम का नाम'], attendance: attendance };
+                }
                 const dateParts = (p['कार्यक्रम दिनांक'] || '').split('/');
                 if (dateParts.length === 3) {
+                    const month = dateParts[1];
                     const date = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
                     if(!isNaN(new Date(date))) {
-                       analytics.byDate[date] = (analytics.byDate[date] || 0) + 1;
+                        analytics.byDate[date] = (analytics.byDate[date] || 0) + 1;
+                        analytics.byMonth[month] = (analytics.byMonth[month] || 0) + 1;
                     }
                 }
-                analytics.totalAttendance += parseInt(p['कार्यक्रम में कुल उपस्तिथि']) || 0;
             });
             
-            document.getElementById('total-programs').textContent = programData.length;
-            document.getElementById('total-mandals').textContent = Object.keys(analytics.byMandal).length;
-            document.getElementById('total-attendance').textContent = analytics.totalAttendance;
-            
-            renderPieChart(analytics.byType, 'typesChart', 'कार्यक्रम के प्रकार');
-            renderBarChart(analytics.byMandal, 'mandalsChart', 'मंडल अनुसार कार्यक्रम');
-            renderLineChart(analytics.byDate, 'timelineChart', 'समयरेखा पर कार्यक्रम');
-        }
-
-        function renderPieChart(data, canvasId, label) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
-            chartInstances[canvasId] = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(data),
-                    datasets: [{ label: label, data: Object.values(data), backgroundColor: ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5'], hoverOffset: 4 }]
-                },
-                options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: label, font: { size: 16 } } } }
-            });
-        }
-        
-        function renderBarChart(data, canvasId, label) {
-            const sortedData = Object.entries(data).sort(([,a],[,b]) => b-a);
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
-            chartInstances[canvasId] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: sortedData.map(item => item[0]),
-                    datasets: [{ label: label, data: sortedData.map(item => item[1]), backgroundColor: '#fb923c', borderColor: '#f97316', borderWidth: 1 }]
-                },
-                options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false }, title: { display: true, text: label, font: { size: 16 } } } }
-            });
-        }
-        
-        function renderLineChart(data, canvasId, label) {
-            const sortedDates = Object.keys(data).sort();
-            const chartData = sortedDates.map(date => ({x: date, y: data[date]}));
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
-            chartInstances[canvasId] = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    datasets: [{ label: label, data: chartData, fill: true, backgroundColor: 'rgba(251, 146, 60, 0.2)', borderColor: '#f97316', tension: 0.1 }]
-                },
-                options: { scales: { x: { type: 'time', time: { unit: 'month', tooltipFormat: 'dd/MM/yyyy' } } }, plugins: { legend: { display: false }, title: { display: true, text: label, font: { size: 16 } } } }
-            });
-        }
-        
-        // --- Slideshow ---
-
-        function generateSlideshowData() {
-            slideshowData = [];
-            filteredData.forEach(program => {
-                const photoLinks = (program['कार्यक्रम के फोटो'] || '').split(',').map(link => link.trim()).filter(link => link);
-                if (photoLinks.length > 0) {
-                    photoLinks.forEach((link, index) => {
-                        const fileId = getDriveFileId(link);
-                        if (fileId) {
-                            slideshowData.push({
-                                ...program,
-                                currentPhotoUrl: `https://lh3.googleusercontent.com/d/${fileId}`,
-                                photoIndex: index + 1,
-                                totalPhotos: photoLinks.length
-                            });
-                        }
-                    });
-                } else {
-                    // Add program even if it has no photos, for completeness
-                    slideshowData.push({
-                        ...program,
-                        currentPhotoUrl: 'https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+नहीं',
-                        photoIndex: 0,
-                        totalPhotos: 0
-                    });
+            const avgAttendance = programData.length > 0 ? Math.round(analytics.totalAttendance / programData.length) : 0;
+            let maxMonthCount = 0, mostActiveMonthNum = '';
+            for (const month in analytics.byMonth) {
+                if (analytics.byMonth[month] > maxMonthCount) {
+                    maxMonthCount = analytics.byMonth[month];
+                    mostActiveMonthNum = month;
                 }
-            });
-        }
-
-        function startSlideshow() {
-            if (slideshowData.length === 0) {
-                alert('दिखाने के लिए कोई कार्यक्रम नहीं है।');
-                return;
             }
-            document.getElementById('slideshow-overlay').classList.remove('hidden');
-            document.getElementById('slideshow-overlay').classList.add('flex');
-            slideshowIndex = 0;
-            isSlideshowPaused = false;
-            updateSlideshowPauseIcon();
-            renderSlide();
-            slideshowInterval = setInterval(nextSlide, 7000);
-        }
+            const monthNames = ["जनवरी", "फ़रवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितम्बर", "अक्टूबर", "नवम्बर", "दिसम्बर"];
+            const mostActiveMonthName = mostActiveMonthNum ? monthNames[parseInt(mostActiveMonthNum) - 1] : '-';
 
-        function stopSlideshow() {
-            document.getElementById('slideshow-overlay').classList.add('hidden');
-            document.getElementById('slideshow-overlay').classList.remove('flex');
-            clearInterval(slideshowInterval);
-        }
+            $('#total-programs').textContent = programData.length;
+            $('#total-mandals').textContent = Object.keys(analytics.byMandal).length;
+            $('#total-attendance').textContent = analytics.totalAttendance.toLocaleString('hi-IN');
+            $('#avg-attendance').textContent = avgAttendance.toLocaleString('hi-IN');
+            $('#most-active-month').textContent = mostActiveMonthName;
+            const topProgramEl = $('#top-program-name');
+            topProgramEl.textContent = analytics.topProgram.name;
+            topProgramEl.title = `${analytics.topProgram.name} (${analytics.topProgram.attendance.toLocaleString('hi-IN')} उपस्थिति)`;
 
-        function renderSlide() {
-            if (slideshowData.length === 0) { stopSlideshow(); return; }
-            const slideItem = slideshowData[slideshowIndex];
-            const content = document.getElementById('slideshow-content');
+            renderPieChart(analytics.byType, 'typesChart');
+            renderBarChart(analytics.byMandal, 'mandalsChart');
+            renderLineChart(analytics.byDate, 'timelineChart');
+            renderMonthlyBarChart(analytics.byMonth, 'monthlyChart');
             
-            let photoCounterHtml = '';
-            if (slideItem.totalPhotos > 0) {
-                photoCounterHtml = `<div class="absolute top-4 left-4 bg-black/50 text-white text-sm font-bold px-3 py-1 rounded-full">फोटो ${slideItem.photoIndex} / ${slideItem.totalPhotos}</div>`;
-            }
+            renderMandalCountList(analytics.byMandal);
+            renderTypeCountList(analytics.byType);
+            renderMandalDetailList(analytics.mandalDetails);
+        }
 
-            content.innerHTML = `
-                <div class="slideshow-card w-full h-full flex flex-col md:flex-row items-center justify-center gap-8 text-white">
-                    <div class="relative w-full md:w-1/2 h-1/2 md:h-3/4">
-                        <img src="${slideItem.currentPhotoUrl}" 
-                             onerror="this.onerror=null;this.src='https://placehold.co/800x600/1e293b/94a3b8?text=फोटो+उपलब्ध+नहीं';" 
-                             alt="${slideItem['कार्यक्रम का नाम']}" class="w-full h-full object-contain rounded-2xl shadow-2xl">
-                        ${photoCounterHtml}
-                    </div>
-                    <div class="w-full md:w-1/2 text-center md:text-left">
-                        <p class="text-xl text-orange-400 font-semibold">${slideItem['कार्यक्रम का प्रकार']}</p>
-                        <h2 class="text-4xl lg:text-6xl font-bold my-4 hindi-title">${slideItem['कार्यक्रम का नाम']}</h2>
-                        <p class="text-lg text-gray-300 mt-2"><strong>मंडल:</strong> ${slideItem['मंडल का नाम']}</p>
-                        <p class="text-lg text-gray-300"><strong>दिनांक:</strong> ${slideItem['कार्यक्रम दिनांक']}</p>
-                        <p class="text-lg text-gray-300"><strong>उपस्थिति:</strong> ${slideItem['कार्यक्रम में कुल उपस्तिथि']}</p>
-                    </div>
+        function renderMandalCountList(data) {
+            const container = $('#mandal-count-list');
+            const sorted = Object.entries(data).sort(([,a],[,b]) => b-a);
+            container.innerHTML = sorted.map(([name, count]) => `
+                <div class="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
+                    <span class="font-medium text-gray-700">${name}</span>
+                    <span class="font-bold text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full text-sm">${count}</span>
                 </div>
-            `;
+            `).join('');
+        }
+
+        function renderTypeCountList(data) {
+            const container = $('#type-count-list');
+            const sorted = Object.entries(data).sort(([,a],[,b]) => b-a);
+            container.innerHTML = sorted.map(([name, count]) => `
+                <div class="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
+                    <span class="font-medium text-gray-700">${name}</span>
+                    <span class="font-bold text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full text-sm">${count}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderMandalDetailList(data) {
+            const container = $('#mandal-detail-list');
+            container.innerHTML = Object.keys(data).sort().map(mandalName => `
+                <details class="bg-gray-50 rounded-lg">
+                    <summary class="flex justify-between items-center p-3 cursor-pointer font-semibold text-gray-800">
+                        <span>${mandalName}</span>
+                        <svg class="arrow w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                    </summary>
+                    <div class="p-3 border-t">
+                        <ul class="space-y-1">
+                            ${data[mandalName].map(p => `<li class="text-sm text-gray-600"><span class="font-mono text-gray-500 mr-2">${p.date}</span> - ${p.name}</li>`).join('')}
+                        </ul>
+                    </div>
+                </details>
+            `).join('');
+        }
+
+        function renderMonthlyBarChart(data, canvasId) {
+            const monthNames = ["जनवरी", "फ़रवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितम्बर", "अक्टूबर", "नवम्बर", "दिसम्बर"];
+            const chartLabels = Object.keys(data).sort((a,b)=> a-b).map(monthNum => monthNames[parseInt(monthNum) - 1]);
+            const chartData = Object.keys(data).sort((a,b)=> a-b).map(monthNum => data[monthNum]);
+            const ctx = $(`#${canvasId}`)?.getContext('2d');
+            if(!ctx) return;
+            if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+            chartInstances[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: chartLabels, datasets: [{ data: chartData, backgroundColor: '#fdba74' }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+        }
+        function renderPieChart(data, canvasId) {
+            const ctx = $(`#${canvasId}`)?.getContext('2d');
+            if(!ctx) return;
+            if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+            chartInstances[canvasId] = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5'], hoverOffset: 4 }] }, options: { responsive: true, plugins: { legend: { position: 'top' } } } });
         }
         
-        function nextSlide() {
-            slideshowIndex = (slideshowIndex + 1) % slideshowData.length;
-            renderSlide();
-        }
-
-        function prevSlide() {
-            slideshowIndex = (slideshowIndex - 1 + slideshowData.length) % slideshowData.length;
-            renderSlide();
-            clearInterval(slideshowInterval); // Stop auto-play when user navigates manually
-            isSlideshowPaused = true;
-            updateSlideshowPauseIcon();
-        }
-
-        function toggleSlideshowPause() {
-            isSlideshowPaused = !isSlideshowPaused;
-            if (isSlideshowPaused) {
-                clearInterval(slideshowInterval);
-            } else {
-                nextSlide(); // Show next slide immediately and then set interval
-                slideshowInterval = setInterval(nextSlide, 7000);
-            }
-            updateSlideshowPauseIcon();
+        function renderBarChart(data, canvasId) {
+            const sortedData = Object.entries(data).sort(([,a],[,b]) => b-a);
+            const ctx = $(`#${canvasId}`)?.getContext('2d');
+            if(!ctx) return;
+            if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+            chartInstances[canvasId] = new Chart(ctx, { type: 'bar', data: { labels: sortedData.map(item => item[0]), datasets: [{ data: sortedData.map(item => item[1]), backgroundColor: '#fb923c' }] }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } } });
         }
         
-        function updateSlideshowPauseIcon() {
-            document.getElementById('pause-icon').classList.toggle('hidden', isSlideshowPaused);
-            document.getElementById('play-icon').classList.toggle('hidden', !isSlideshowPaused);
+        function renderLineChart(data, canvasId) {
+            const chartData = Object.keys(data).sort().map(date => ({x: date, y: data[date]}));
+            const ctx = $(`#${canvasId}`)?.getContext('2d');
+            if(!ctx) return;
+            if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+            chartInstances[canvasId] = new Chart(ctx, { type: 'line', data: { datasets: [{ data: chartData, fill: true, backgroundColor: 'rgba(251, 146, 60, 0.2)', borderColor: '#f97316', tension: 0.1 }] }, options: { scales: { x: { type: 'time', time: { unit: 'month' } } }, plugins: { legend: { display: false } } } });
         }
-
     </script>
 </body>
 </html>
