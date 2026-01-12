@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" /> <!-- CRITICAL FIX FOR IMAGE LOADING -->
   <title>स्मार्ट AI गैलरी • BJP Dashboard</title>
 
   <!-- Fonts & Icons -->
@@ -48,7 +49,7 @@
     /* Layout */
     .main-container {
       display: grid;
-      grid-template-columns: 300px 1fr;
+      grid-template-columns: 320px 1fr;
       height: calc(100vh - 70px);
       gap: 20px;
       padding: 20px;
@@ -62,10 +63,28 @@
       box-shadow: 0 4px 15px rgba(0,0,0,0.05);
       overflow-y: auto;
       border: 1px solid #eee;
+      display: flex;
+      flex-direction: column;
     }
 
     .sidebar h3 { margin-top: 0; color: #d35400; border-bottom: 2px solid #ffe0b2; padding-bottom: 10px; }
     
+    .search-box {
+      margin-bottom: 15px;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-family: inherit;
+    }
+
+    .person-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
     .person-card {
       display: flex;
       align-items: center;
@@ -112,8 +131,12 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
+    .controls { display: flex; gap: 10px; }
+    
     .controls button {
       background: var(--primary);
       color: white;
@@ -127,7 +150,8 @@
       gap: 8px;
       transition: background 0.2s;
     }
-    .controls button:hover { background: #e65100; }
+    .controls button.secondary { background: #607d8b; }
+    .controls button:hover { opacity: 0.9; }
     .controls button:disabled { background: #ccc; cursor: not-allowed; }
 
     /* Photo Grid */
@@ -143,6 +167,7 @@
       overflow: hidden;
       border: 1px solid #eee;
       aspect-ratio: 1;
+      cursor: zoom-in;
     }
     .photo-card img {
       width: 100%; height: 100%;
@@ -151,24 +176,6 @@
     }
     .photo-card:hover img { transform: scale(1.05); }
     
-    .photo-overlay {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      padding: 8px;
-      font-size: 0.8rem;
-    }
-
-    /* Face Boxes Overlay */
-    .face-box {
-      position: absolute;
-      border: 2px solid #00e676;
-      background: rgba(0, 230, 118, 0.2);
-      cursor: pointer;
-    }
-    .face-box:hover { border-color: #ffeb3b; background: rgba(255, 235, 59, 0.3); }
-
     /* Loading State */
     .loader {
       display: none;
@@ -179,25 +186,39 @@
     @keyframes spin { 100% { transform: rotate(360deg); } }
 
     /* Timeline View */
+    .timeline-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
     .timeline-item {
       padding: 15px;
       border-left: 3px solid var(--primary);
       margin-left: 10px;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
       background: #fff;
       position: relative;
+      border-radius: 0 8px 8px 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
     .timeline-item::before {
       content: '';
-      position: absolute; left: -8px; top: 20px;
-      width: 14px; height: 14px;
+      position: absolute; left: -9px; top: 20px;
+      width: 15px; height: 15px;
       background: var(--primary);
       border-radius: 50%;
+      border: 3px solid #fff;
+    }
+    .timeline-date {
+      font-size: 0.85rem;
+      color: #777;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
     }
 
     @media (max-width: 768px) {
       .main-container { grid-template-columns: 1fr; height: auto; }
-      .sidebar { height: 300px; }
+      .sidebar { height: 400px; }
     }
   </style>
 </head>
@@ -212,7 +233,10 @@
     <!-- Sidebar: Known People (Visitors) -->
     <div class="sidebar">
       <h3><i class="fas fa-users"></i> कार्यकर्ता / आगंतुक</h3>
-      <div id="visitorList">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="नाम या मोबाइल से खोजें..." onkeyup="filterVisitors()">
+      </div>
+      <div id="visitorList" class="person-list">
         <div style="text-align:center; padding: 20px; color:#999;">
           <i class="fas fa-spinner fa-spin"></i> लोड हो रहा है...
         </div>
@@ -225,7 +249,10 @@
         <h2 id="galleryTitle">फोटो डैशबोर्ड</h2>
         <div class="controls">
           <button id="scanBtn" onclick="startScanning()" disabled>
-            <i class="fas fa-magic"></i> Scan All Photos (AI)
+            <i class="fas fa-magic"></i> Scan All (AI)
+          </button>
+          <button id="downloadBtn" class="secondary" onclick="downloadReport()" style="display:none">
+            <i class="fas fa-download"></i> रिपोर्ट डाउनलोड
           </button>
         </div>
       </div>
@@ -233,14 +260,14 @@
       <div class="loader" id="loader">
         <i class="fas fa-circle-notch"></i>
         <h3 id="loaderText">AI चेहरों को स्कैन कर रहा है...</h3>
-        <p>इसमें थोड़ा समय लग सकता है।</p>
+        <p>सिस्टम सभी इवेंट फोटोज में चेहरों को ढूंढ रहा है। कृपया प्रतीक्षा करें।</p>
       </div>
 
       <div id="galleryContent" class="photo-grid">
         <!-- Photos will appear here -->
-        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">
-          <i class="fas fa-images fa-3x" style="margin-bottom:15px; display:block; opacity:0.3"></i>
-          किसी कार्यकर्ता पर क्लिक करें या "Scan" बटन दबाएं
+        <div style="grid-column: 1/-1; text-align: center; padding: 60px; color: #888;">
+          <i class="fas fa-images fa-4x" style="margin-bottom:20px; display:block; opacity:0.2"></i>
+          <p>बाईं ओर किसी कार्यकर्ता पर क्लिक करें या <strong>"Scan All"</strong> बटन दबाकर जादू देखें!</p>
         </div>
       </div>
     </div>
@@ -266,54 +293,47 @@
     const db = getFirestore(app);
 
     // --- Global State ---
-    let visitors = []; // { id, name, mobile, selfieUrl, descriptor }
-    let reportPhotos = []; // { id, url, eventName, date, descriptors[] }
+    let visitors = []; 
+    let reportPhotos = []; 
     let faceMatcher = null;
     let isModelsLoaded = false;
+    let selectedVisitorIndex = -1;
 
     // --- DOM Elements ---
     const visitorListEl = document.getElementById('visitorList');
     const galleryContentEl = document.getElementById('galleryContent');
     const scanBtn = document.getElementById('scanBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
     const modelStatusEl = document.getElementById('modelStatus');
 
     // --- 1. Load AI Models ---
     async function loadModels() {
       try {
-        // Load models from CDN
         const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
-        
         await Promise.all([
-          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL), // Heavy but accurate detector
+          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
           faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
         ]);
-
         isModelsLoaded = true;
         modelStatusEl.innerText = "✅ AI Ready";
-        modelStatusEl.style.background = "green";
+        modelStatusEl.style.background = "#2e7d32";
         scanBtn.disabled = false;
-        console.log("AI Models Loaded");
-        
-        // Load initial data
         loadVisitors();
-
       } catch (err) {
         console.error("Model Load Error:", err);
         modelStatusEl.innerText = "❌ AI Error";
-        modelStatusEl.style.background = "red";
-        alert("AI Models load nahi huye. Internet check karein.");
+        modelStatusEl.style.background = "#c62828";
+        alert("AI Models लोड नहीं हो पाए। इंटरनेट कनेक्शन चेक करें।");
       }
     }
 
     // --- 2. Load Visitors (Known Faces) ---
     async function loadVisitors() {
       visitorListEl.innerHTML = '<div style="text-align:center; padding:10px;">विजिटर डेटा लोड हो रहा है...</div>';
-      
       try {
-        const q = query(collection(db, "visitors"), orderBy("timestamp", "desc"), limit(50)); // Limit for performance
+        const q = query(collection(db, "visitors"), orderBy("timestamp", "desc"), limit(100)); 
         const snapshot = await getDocs(q);
-        
         visitors = [];
         snapshot.forEach(doc => {
           const data = doc.data();
@@ -324,14 +344,12 @@
               mobile: data.mobile || "No Mobile",
               selfie: data.selfie,
               mandal: data.mandal,
-              matches: [] // To store matched photo URLs
+              timestamp: data.timestamp,
+              matches: [] 
             });
           }
         });
-
         renderSidebar();
-        console.log(`Loaded ${visitors.length} visitors.`);
-
       } catch (err) {
         console.error("Visitor Load Error:", err);
         visitorListEl.innerHTML = '<div style="color:red">डेटा लोड फेल</div>';
@@ -339,16 +357,29 @@
     }
 
     // --- 3. Render Sidebar ---
+    window.filterVisitors = function() {
+      renderSidebar();
+    }
+
     function renderSidebar() {
+      const filter = document.getElementById('searchInput').value.toLowerCase();
       visitorListEl.innerHTML = '';
-      if(visitors.length === 0) {
-        visitorListEl.innerHTML = '<div style="padding:10px">कोई विजिटर डेटा नहीं मिला</div>';
+      
+      const filtered = visitors.filter(v => 
+        (v.name && v.name.toLowerCase().includes(filter)) || 
+        (v.mobile && v.mobile.includes(filter))
+      );
+
+      if(filtered.length === 0) {
+        visitorListEl.innerHTML = '<div style="padding:10px; text-align:center">कोई डेटा नहीं</div>';
         return;
       }
 
-      visitors.forEach((v, index) => {
+      filtered.forEach((v) => {
+        // Find original index
+        const index = visitors.indexOf(v);
         const div = document.createElement('div');
-        div.className = 'person-card';
+        div.className = `person-card ${index === selectedVisitorIndex ? 'active' : ''}`;
         div.onclick = () => showPersonDetails(index);
         div.innerHTML = `
           <img src="${v.selfie}" class="person-face" alt="${v.name}" crossorigin="anonymous">
@@ -357,7 +388,7 @@
             <p>${v.mandal || ''}</p>
             <p style="font-size:0.75rem">${v.mobile}</p>
           </div>
-          <div class="match-count" id="count-${v.id}">0</div>
+          <div class="match-count" id="count-${v.id}">${v.matches.length || 0}</div>
         `;
         visitorListEl.appendChild(div);
       });
@@ -369,92 +400,90 @@
       scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
       document.getElementById('loader').style.display = 'block';
       galleryContentEl.innerHTML = '';
+      downloadBtn.style.display = 'none';
 
       try {
-        // A. Process Visitors (Create Descriptors for Known Faces)
+        // A. Process Visitors
         document.getElementById('loaderText').innerText = "1/3: विजिटर चेहरों को याद किया जा रहा है...";
         const labeledDescriptors = [];
         
         for (let v of visitors) {
           try {
-            const img = await faceapi.fetchImage(v.selfie);
-            const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-            
-            if (detection) {
-              v.descriptor = detection.descriptor;
-              labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(v.id, [detection.descriptor]));
-              console.log(`Indexed face: ${v.name}`);
+            if(!v.descriptor) { // Only process if not already processed
+                const img = await faceapi.fetchImage(v.selfie);
+                const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                if (detection) {
+                    v.descriptor = detection.descriptor;
+                    labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(v.id, [detection.descriptor]));
+                }
+            } else {
+                labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(v.id, [v.descriptor]));
             }
-          } catch(e) {
-            console.warn(`Could not process selfie for ${v.name}`, e);
-          }
+          } catch(e) { console.warn(`Error processing selfie: ${v.name}`, e); }
         }
 
-        if (labeledDescriptors.length === 0) {
-          throw new Error("कोई भी साफ़ चेहरा नहीं मिला विजिटर लिस्ट में।");
-        }
-
-        faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6); // 0.6 is distance threshold
+        if (labeledDescriptors.length === 0) throw new Error("कोई भी साफ़ चेहरा नहीं मिला।");
+        faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55); // Stricter threshold
 
         // B. Fetch Event Photos
         document.getElementById('loaderText').innerText = "2/3: इवेंट फोटो लोड की जा रही हैं...";
-        reportPhotos = await fetchAllReportPhotos();
+        if(reportPhotos.length === 0) reportPhotos = await fetchAllReportPhotos();
 
         // C. Match Faces
-        document.getElementById('loaderText').innerText = "3/3: मिलान (Matching) चल रहा है...";
+        document.getElementById('loaderText').innerText = `3/3: ${reportPhotos.length} फोटोज स्कैन हो रही हैं...`;
         
         let matchCount = 0;
-        for (let photo of reportPhotos) {
+        // Reset matches
+        visitors.forEach(v => v.matches = []);
+
+        for (let i = 0; i < reportPhotos.length; i++) {
+          const photo = reportPhotos[i];
+          document.getElementById('loaderText').innerText = `3/3: स्कैनिंग फोटो ${i+1}/${reportPhotos.length}...`;
+          
           try {
-            // Detect all faces in the event photo
             const img = await faceapi.fetchImage(photo.url);
             const detections = await faceapi.detectAllFaces(img).withFaceLandmarks().withFaceDescriptors();
             
-            // Compare each detected face with known visitors
             detections.forEach(fd => {
               const bestMatch = faceMatcher.findBestMatch(fd.descriptor);
               if (bestMatch.label !== 'unknown') {
-                // Found a match!
                 const visitorId = bestMatch.label;
                 const visitor = visitors.find(v => v.id === visitorId);
                 if (visitor) {
-                  visitor.matches.push(photo);
-                  matchCount++;
-                  
-                  // Update UI Counter instantly
-                  const countEl = document.getElementById(`count-${visitorId}`);
-                  if(countEl) countEl.innerText = visitor.matches.length;
+                  // Avoid duplicates
+                  if(!visitor.matches.some(m => m.url === photo.url)) {
+                      visitor.matches.push(photo);
+                      matchCount++;
+                  }
                 }
               }
             });
-
-          } catch (e) {
-            console.warn("Skipped an event photo due to error", e);
-          }
+          } catch (e) { console.warn("Skipped photo", e); }
         }
 
+        renderSidebar(); // Update counts
         Swal.fire("स्कैन पूरा हुआ!", `कुल ${matchCount} चेहरे पहचाने गए।`, "success");
+
+        // If a person was selected, refresh their view
+        if(selectedVisitorIndex !== -1) showPersonDetails(selectedVisitorIndex);
+        else galleryContentEl.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;"><h3>स्कैन पूरा हुआ!</h3><p>अब किसी भी कार्यकर्ता पर क्लिक करके देखें कि वो कहाँ-कहाँ गया था।</p></div>`;
 
       } catch (err) {
         console.error(err);
-        Swal.fire("Error", "स्कैनिंग में समस्या आई: " + err.message, "error");
+        Swal.fire("Error", "स्कैनिंग में समस्या: " + err.message, "error");
       } finally {
         document.getElementById('loader').style.display = 'none';
         scanBtn.disabled = false;
-        scanBtn.innerHTML = '<i class="fas fa-magic"></i> Scan Again';
+        scanBtn.innerHTML = '<i class="fas fa-magic"></i> Scan All (AI)';
       }
     }
 
-    // --- Helper: Fetch All Report Photos ---
     async function fetchAllReportPhotos() {
       const photos = [];
       const eventNamesSnap = await getDocs(collection(db, "eventNames"));
-      
       for (const evDoc of eventNamesSnap.docs) {
         const eventName = evDoc.data().name;
-        // Fetch reports for this event
         const reportsSnap = await getDocs(collection(db, `eventNames/${evDoc.id}/reports`));
-        
         reportsSnap.forEach(rDoc => {
           const rData = rDoc.data();
           if (rData.photos && Array.isArray(rData.photos)) {
@@ -473,58 +502,125 @@
       return photos;
     }
 
-    // --- 5. Show Person Details (Timeline) ---
+    // --- 5. Show Person Details & Report ---
     window.showPersonDetails = function(index) {
-      const v = visitors[index];
-      const allCards = document.querySelectorAll('.person-card');
-      allCards.forEach(c => c.classList.remove('active'));
-      allCards[index].classList.add('active');
+      selectedVisitorIndex = index;
+      renderSidebar(); // highlight active
 
-      document.getElementById('galleryTitle').innerText = `${v.name} की टाइमलाइन`;
+      const v = visitors[index];
+      downloadBtn.style.display = 'inline-flex';
+      
+      galleryContentEl.className = ''; // remove grid class for timeline layout
       galleryContentEl.innerHTML = '';
 
-      // 1. Show Selfie (Profile)
+      // 1. Profile Header
       const profileDiv = document.createElement('div');
-      profileDiv.style.gridColumn = "1 / -1";
-      profileDiv.style.marginBottom = "20px";
       profileDiv.innerHTML = `
-        <div style="display:flex; gap:20px; align-items:center; background:#f9f9f9; padding:15px; border-radius:8px;">
-           <img src="${v.selfie}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid var(--primary);">
+        <div style="display:flex; gap:20px; align-items:center; background:#f0f4f8; padding:20px; border-radius:12px; border:1px solid #dbeafe;">
+           <img src="${v.selfie}" style="width:110px; height:110px; border-radius:50%; object-fit:cover; border:4px solid white; box-shadow:0 4px 6px rgba(0,0,0,0.1);" crossorigin="anonymous">
            <div>
-             <h2 style="margin:0">${v.name}</h2>
-             <p style="margin:5px 0">${v.mandal} • ${v.mobile}</p>
-             <span class="status-badge" style="background:#00e676; color:#003300">Office Visitor</span>
+             <h2 style="margin:0; color:#1e293b;">${v.name}</h2>
+             <p style="margin:5px 0; color:#64748b;">${v.mandal} • ${v.mobile}</p>
+             <div style="margin-top:8px;">
+                <span class="status-badge" style="background:#dcfce7; color:#166534; border:1px solid #bbf7d0;">Office Visitor</span>
+                ${v.matches.length > 0 ? `<span class="status-badge" style="background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; margin-left:8px;">Found in ${v.matches.length} Events</span>` : ''}
+             </div>
            </div>
         </div>
-        <h3 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:10px;">
-          <i class="fas fa-history"></i> कहाँ-कहाँ देखा गया (Matches Found: ${v.matches.length})
-        </h3>
+        <div class="timeline-container" style="margin-top:30px;">
+            <h3 style="color:#475569; border-bottom:2px solid #e2e8f0; padding-bottom:10px; margin-bottom:20px;">
+              <i class="fas fa-history"></i> गतिविधि टाइमलाइन (Activity Timeline)
+            </h3>
+        </div>
       `;
       galleryContentEl.appendChild(profileDiv);
 
-      if (v.matches.length === 0) {
-        galleryContentEl.innerHTML += `<div style="padding:20px; color:#666;">अभी तक किसी इवेंट फोटो में नहीं मिले। (Scan बटन दबाएं)</div>`;
+      const timelineContainer = profileDiv.querySelector('.timeline-container');
+
+      // 2. Timeline Logic
+      // Combine Office Visit + Event Matches
+      let timelineEvents = [];
+      
+      // A. Office Visit (Registration)
+      if(v.timestamp) {
+        // Try to convert timestamp
+        let dateStr = "Unknown Date";
+        try { dateStr = v.timestamp.toDate ? v.timestamp.toDate().toLocaleDateString('hi-IN') : new Date(v.timestamp).toLocaleDateString('hi-IN'); } catch(e){}
+        
+        timelineEvents.push({
+            type: 'office',
+            date: dateStr,
+            rawDate: v.timestamp.toDate ? v.timestamp.toDate() : new Date(v.timestamp),
+            title: 'BJP कार्यालय विजिट',
+            desc: 'आगंतुक पंजीयन किया गया',
+            img: v.selfie
+        });
+      }
+
+      // B. Matches
+      v.matches.forEach(m => {
+        timelineEvents.push({
+            type: 'event',
+            date: m.date || 'Unknown',
+            rawDate: new Date(m.date),
+            title: m.eventName,
+            desc: `स्थान: ${m.location} | मंडल: ${m.mandal}`,
+            img: m.url
+        });
+      });
+
+      // Sort by date (Newest first)
+      timelineEvents.sort((a,b) => b.rawDate - a.rawDate);
+
+      if (timelineEvents.length === 0) {
+        timelineContainer.innerHTML += `<div style="text-align:center; padding:20px; color:#999;">कोई डेटा उपलब्ध नहीं</div>`;
         return;
       }
 
-      // 2. Show Matched Photos
-      v.matches.forEach(photo => {
-        const card = document.createElement('div');
-        card.className = 'timeline-item';
-        card.innerHTML = `
-          <strong>${photo.eventName}</strong> <span style="color:#666; font-size:0.9rem">(${photo.date})</span>
-          <div style="margin-top:4px; font-size:0.9rem; color:#444;">📍 ${photo.location} | ${photo.mandal}</div>
-          <div style="margin-top:10px; height:200px; border-radius:8px; overflow:hidden; border:1px solid #ddd;">
-             <img src="${photo.url}" style="width:100%; height:100%; object-fit:contain; background:#000;">
-          </div>
+      timelineEvents.forEach(evt => {
+        const item = document.createElement('div');
+        item.className = 'timeline-item';
+        item.innerHTML = `
+          <div class="timeline-date"><i class="far fa-calendar-alt"></i> ${evt.date}</div>
+          <strong style="font-size:1.1rem; color:#334155;">${evt.title}</strong>
+          <div style="margin-top:4px; font-size:0.95rem; color:#64748b;">${evt.desc}</div>
+          ${evt.type === 'event' ? 
+            `<div style="margin-top:12px; height:220px; border-radius:8px; overflow:hidden; border:1px solid #e2e8f0;">
+               <img src="${evt.img}" style="width:100%; height:100%; object-fit:contain; background:#0f172a;" crossorigin="anonymous">
+            </div>` : ''
+          }
         `;
-        galleryContentEl.appendChild(card);
+        timelineContainer.appendChild(item);
       });
+    }
+
+    // --- 6. Download Report Logic ---
+    window.downloadReport = function() {
+        if(selectedVisitorIndex === -1) return;
+        const v = visitors[selectedVisitorIndex];
+        
+        let reportText = `BJP कार्यकर्ता रिपोर्ट\n------------------\n`;
+        reportText += `नाम: ${v.name}\nमोबाइल: ${v.mobile}\nमंडल: ${v.mandal}\n\n`;
+        reportText += `गतिविधि इतिहास:\n`;
+        
+        if(v.matches.length === 0) reportText += "(सिर्फ कार्यालय विजिट, कोई अन्य इवेंट फोटो नहीं मिला)\n";
+        
+        v.matches.forEach((m, i) => {
+            reportText += `${i+1}. ${m.eventName} (${m.date}) - स्थान: ${m.location}\n`;
+        });
+
+        // Simple text download
+        const blob = new Blob([reportText], { type: "text/plain;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${v.name}_Report.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     }
 
     // Init
     loadModels();
-
   </script>
 </body>
 </html>
